@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { Loader2, ShieldAlert } from "lucide-react";
@@ -12,12 +13,28 @@ import { Loader2, ShieldAlert } from "lucide-react";
  *   2. The user's profile has is_admin = true
  *
  * If either check fails, redirects to /.
- * Works in tandem with the server-side middleware.
+ * Uses useEffect for redirects to avoid "setState during render" errors.
  */
 
 export function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, isAdmin, isLoading } = useAuthStore();
+
+  // Redirect if not authenticated — via useEffect to avoid React errors
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Redirect if not admin — via useEffect
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    if (!isAdmin) {
+      router.replace("/");
+    }
+  }, [isAuthenticated, isAdmin, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -28,7 +45,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    router.replace("/login");
+    // Show loader while useEffect redirect fires
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-cinema-red animate-spin" />

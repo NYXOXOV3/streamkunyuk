@@ -14,6 +14,7 @@ export function AdminHeader({ title }: { title?: string }) {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    useAuthStore.getState().reset();
     router.push("/");
     router.refresh();
   }

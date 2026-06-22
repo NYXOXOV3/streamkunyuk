@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { Loader2 } from "lucide-react";
@@ -10,12 +11,7 @@ import { Loader2 } from "lucide-react";
  * Client-side wrapper that checks the Zustand auth store.
  * If the user is not authenticated, redirects to /login.
  *
- * Place this around any route that requires authentication:
- *   <AuthGuard><ProfilePage /></AuthGuard>
- *
- * Works in tandem with the server-side middleware for defense-in-depth.
- * The middleware handles the redirect on first load; this guard
- * handles SPA navigations and race conditions.
+ * Uses useEffect for redirects to avoid "setState during render" errors.
  */
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -23,8 +19,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useAuthStore();
 
-  // Derive state instead of using setState in effect
   const redirect = searchParams.get("redirect") || "/login";
+
+  // Redirect if not authenticated — via useEffect to avoid React errors
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace(redirect);
+    }
+  }, [isAuthenticated, isLoading, redirect, router]);
 
   if (isLoading) {
     return (
@@ -35,7 +38,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    router.replace(redirect);
+    // Show loader while useEffect redirect fires
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-cinema-red animate-spin" />

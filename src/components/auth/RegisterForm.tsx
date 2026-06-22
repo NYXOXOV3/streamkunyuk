@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/lib/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,9 @@ import {
 import {
   Loader2, Mail, Lock, Eye, EyeOff, User, Play,
 } from "lucide-react";
+import type { Profile, Subscription } from "@/lib/supabase/types";
 
 export function RegisterForm() {
-  const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,23 +63,47 @@ export function RegisterForm() {
       return;
     }
 
-    toast({ title: "Account created!", description: "Signing you in..." });
-
     // 2. Auto sign in after register (works if email confirmation is disabled)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError) {
       // Email confirmation might be required
       toast({ title: "Account created", description: "Please sign in after confirming your email." });
-      router.push("/login");
+      window.location.href = "/login";
       return;
     }
 
-    // 3. Navigate to home
-    setTimeout(() => {
-      router.push("/");
-      router.refresh();
-    }, 300);
+    // 3. Update auth store immediately
+    if (signInData.session?.user) {
+      const userId = signInData.session.user.id;
+      const userEmail = signInData.session.user.email!;
+
+      try {
+        const [profileRes, subRes] = await Promise.all([
+          supabase.from("profiles").select("*").eq("id", userId).single(),
+          supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).single(),
+        ]);
+
+        useAuthStore.getState().setAuth({
+          userId,
+          email: userEmail,
+          profile: (profileRes.data as Profile) ?? null,
+          subscription: (subRes.data as Subscription) ?? null,
+        });
+      } catch {
+        useAuthStore.getState().setAuth({
+          userId,
+          email: userEmail,
+          profile: null,
+          subscription: null,
+        });
+      }
+    }
+
+    toast({ title: "Account created!" });
+
+    // Hard redirect for clean state
+    window.location.href = "/";
   }
 
   async function handleGoogleSignIn() {

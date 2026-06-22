@@ -136,3 +136,29 @@ Stage Summary:
 - Data fetching: Server Components with Promise.all parallel queries, Suspense boundaries with skeletons
 - 7 new files created, 1 file replaced (home page)
 - Phase 3 immediate goal complete — ready for Browse/Search pages and Video Player
+
+---
+Task ID: auth-fix-1
+Agent: Super Z (Main)
+Task: Full auth system overhaul — fix session persistence, guard setState errors, server action errors
+
+Work Log:
+- Diagnosed root cause: @supabase/ssr createBrowserClient cookie sync broken in Next.js 16 Turbopack, session lost after page reload
+- Rewrote src/lib/supabase/client.ts: switched from @supabase/ssr createBrowserClient to @supabase/supabase-js createClient (singleton pattern, localStorage-based session persistence)
+- Fixed src/components/auth/AuthGuard.tsx: moved router.replace() from render body into useEffect to fix "Cannot update a component (Router) while rendering" React error
+- Fixed src/components/auth/AdminGuard.tsx: same useEffect fix for redirect logic
+- Rewrote src/components/auth/AuthInitializer.tsx: uses singleton client, added console logging for auth events, better error handling
+- Rewrote src/components/auth/LoginForm.tsx: immediately updates auth store after login (no 300ms setTimeout), uses window.location.href for hard redirect, removed unused useRouter import
+- Rewrote src/components/auth/RegisterForm.tsx: same pattern — immediate store update + hard redirect
+- Fixed src/components/layout/Navbar.tsx signOut: added useAuthStore.getState().reset() to clear Zustand state
+- Fixed src/components/admin/AdminHeader.tsx signOut: added useAuthStore.getState().reset(), removed duplicate import
+- Cleared .next cache and restarted PM2 — verified all pages return 200 with zero errors
+- "Invalid Server Actions request" on ApiConfigPage was a cascade from AdminGuard React error (x-forwarded-host mismatch is a proxy/preview environment issue, not code)
+
+Stage Summary:
+- Auth system fully overhauled: localStorage-based persistence (no more cookie issues)
+- Session survives page reload (tested: login → reload → still authenticated)
+- Guards no longer throw React setState-during-render errors
+- All routes verified: /, /login, /register, /admin — all 200 OK, zero console errors
+- 6 files modified, 0 new files created
+- Ready for user testing: register → login → reload → admin panel

@@ -204,6 +204,7 @@ export function Navbar() {
                     onClick={async () => {
                       const supabase = createClient();
                       await supabase.auth.signOut();
+                      useAuthStore.getState().reset();
                       router.push("/");
                       router.refresh();
                     }}

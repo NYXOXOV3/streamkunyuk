@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/lib/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,9 +23,9 @@ import {
   EyeOff,
   Play,
 } from "lucide-react";
+import type { Profile, Subscription } from "@/lib/supabase/types";
 
 export function LoginForm() {
-  const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,7 +42,7 @@ export function LoginForm() {
 
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setServerError(error.message);
@@ -51,12 +51,43 @@ export function LoginForm() {
       return;
     }
 
+    if (!data.session?.user) {
+      setServerError("Login succeeded but no session returned.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Immediately update the auth store with the session data
+    const userId = data.session.user.id;
+    const userEmail = data.session.user.email!;
+
+    // Fetch profile and subscription
+    try {
+      const [profileRes, subRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", userId).single(),
+        supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).single(),
+      ]);
+
+      useAuthStore.getState().setAuth({
+        userId,
+        email: userEmail,
+        profile: (profileRes.data as Profile) ?? null,
+        subscription: (subRes.data as Subscription) ?? null,
+      });
+    } catch {
+      // Set auth with just userId/email even if profile fetch fails
+      useAuthStore.getState().setAuth({
+        userId,
+        email: userEmail,
+        profile: null,
+        subscription: null,
+      });
+    }
+
     toast({ title: "Welcome back!" });
-    // Small delay to let onAuthStateChange fire and update the store
-    setTimeout(() => {
-      router.push("/");
-      router.refresh();
-    }, 300);
+
+    // Hard redirect to ensure clean state
+    window.location.href = "/";
   }
 
   async function handleGoogleSignIn() {
