@@ -112,3 +112,27 @@ Stage Summary:
 - Subtitle URL stored as JSONB `[{lang: "en", url: "..."}]` in subtitles_url column
 - React Query pattern: 2min staleTime, auto-invalidate on mutations, toast notifications
 - Phase 2 Step 2.6 complete
+
+---
+Task ID: 3.1
+Agent: Super Z (Main)
+Task: Phase 3 Immediate Goal — Home Page (Hero + Carousels) & Content Detail Page
+
+Work Log:
+- Created `src/components/home/ContentCard.tsx`: Reusable poster card with 16:9 aspect ratio, Framer Motion staggered fade-in (`whileInView`), hover scale + gradient overlay + centered Play button, Premium badge (gold Crown), Rating badge (Star with fill), year + type subtitle, links to `/watch/[id]`
+- Created `src/components/home/HeroBanner.tsx`: Full-width cinematic hero (65-70vh), AnimatePresence crossfade between featured items, auto-cycle every 8s with dot indicators, pauses on hover, type badge + title + year + rating + synopsis + Play/More Info CTAs, cinema-gradient-bottom + cinema-gradient-right overlays
+- Created `src/components/home/ContentCarousel.tsx`: Horizontal scrollable row with `scrollbar-hide`, left/right gradient-fade arrows on hover (group/section pattern), per-breakpoint card widths (140-250px), optional "See All" link
+- Created `src/components/home/HomeSkeleton.tsx`: Full-page loading skeleton (hero + 4 carousel rows)
+- Replaced `src/app/(main)/page.tsx`: Server Component with `Suspense` boundaries, parallel `Promise.all` Supabase queries (featured, trending, new releases, movies, series, anime/donghua, categories, continue watching), dynamic category-based carousel rows via `content_categories` join, Continue Watching row with progress bars, graceful empty state
+- Created `src/components/content/EpisodeGrid.tsx`: Episode grid (2-col sm, 1-col mobile) with access control UI — free episodes show Play on hover, locked episodes show blur overlay + Lock icon + Premium badge, free trial episodes show Gift badge + always playable. PremiumUpgradeDialog with Crown/Gift benefits + "Upgrade Now" CTA linking to `/profile/subscription`. `canPlayEpisode()` logic: free_trial || !is_locked || isSubscriber. "Show All" toggle after 6 episodes.
+- Created `src/app/(main)/watch/[contentId]/page.tsx`: Server Component fetching content + categories + episodes + subscription status in parallel, 55vh backdrop with gradient overlays, poster sidebar (lg+), type/rating/year/runtime meta, category tags, expandable synopsis via client component, EpisodeGrid for multi-episode types, movie Play button with premium lock, notFound() for missing content, full skeleton fallback
+- Created `src/app/(main)/watch/[contentId]/ContentDetailClient.tsx`: Client component for expandable synopsis (collapse at 300 chars)
+- Build: `next build` compiles cleanly, 0 errors, both `/` and `/watch/[contentId]` registered as dynamic (ƒ) routes
+
+Stage Summary:
+- Home Page: Hero banner (auto-cycle 8s, framer-motion crossfade) + 5-8 content carousels + Continue Watching row with progress bars
+- Content Detail Page: Backdrop hero, poster sidebar, full metadata, category tags, expandable synopsis, episode grid with paywall UI
+- Access Control: 3-tier system (Free / Free Trial / Locked), PremiumUpgradeDialog with upgrade CTA
+- Data fetching: Server Components with Promise.all parallel queries, Suspense boundaries with skeletons
+- 7 new files created, 1 file replaced (home page)
+- Phase 3 immediate goal complete — ready for Browse/Search pages and Video Player
