@@ -15,7 +15,7 @@
  *   - The encryption key MUST be 32 bytes (256 bits) and stored securely
  */
 
-const ALGORITHM = "aes-256-gcm";
+const ALGORITHM = "AES-GCM";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
