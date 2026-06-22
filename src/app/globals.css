@@ -1,0 +1,304 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   STREAMING PLATFORM — CINEMA-DARK THEME
+   A Netflix/iQIYI-inspired dark palette built on oklch color space.
+   The entire app runs in dark mode (class-based).
+   ========================================================================== */
+
+@theme inline {
+  /* --- shadcn/ui bridge tokens --- */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* --- Cinema-specific color tokens --- */
+  --color-cinema-bg: var(--cinema-bg);
+  --color-cinema-surface: var(--cinema-surface);
+  --color-cinema-elevated: var(--cinema-elevated);
+  --color-cinema-red: var(--cinema-red);
+  --color-cinema-red-hover: var(--cinema-red-hover);
+  --color-cinema-gold: var(--cinema-gold);
+  --color-cinema-muted: var(--cinema-muted);
+  --color-cinema-border: var(--cinema-border);
+  --color-cinema-overlay: var(--cinema-overlay);
+}
+
+/* ==========================================================================
+   :root — Light mode (kept as fallback but NOT used in production)
+   ========================================================================== */
+
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Cinema tokens (light — unused) */
+  --cinema-bg: oklch(0.98 0 0);
+  --cinema-surface: oklch(1 0 0);
+  --cinema-elevated: oklch(1 0 0);
+  --cinema-red: oklch(0.55 0.22 25);
+  --cinema-red-hover: oklch(0.48 0.24 25);
+  --cinema-gold: oklch(0.76 0.15 85);
+  --cinema-muted: oklch(0.6 0 0);
+  --cinema-border: oklch(0.88 0 0);
+  --cinema-overlay: oklch(0 0 0 / 60%);
+}
+
+/* ==========================================================================
+   .dark — PRODUCTION THEME: Deep cinema black with crimson accent
+   ========================================================================== */
+
+.dark {
+  --background: oklch(0.08 0.005 270);          /* #0b0b12 — deep blue-black */
+  --foreground: oklch(0.95 0 0);                /* #f0f0f0 — near-white text */
+
+  --card: oklch(0.12 0.006 270);                /* #141420 — surface panels */
+  --card-foreground: oklch(0.95 0 0);
+
+  --popover: oklch(0.13 0.007 270);             /* #161625 — dropdowns/popovers */
+  --popover-foreground: oklch(0.95 0 0);
+
+  --primary: oklch(0.55 0.22 25);               /* #e50914 — Netflix red */
+  --primary-foreground: oklch(1 0 0);           /* #ffffff */
+
+  --secondary: oklch(0.18 0.008 270);           /* #1c1c2e — secondary surface */
+  --secondary-foreground: oklch(0.90 0 0);
+
+  --muted: oklch(0.18 0.008 270);               /* #1c1c2e */
+  --muted-foreground: oklch(0.63 0.01 270);     /* #8a8a9a — muted text */
+
+  --accent: oklch(0.22 0.01 270);               /* #232336 — hover highlight */
+  --accent-foreground: oklch(0.95 0 0);
+
+  --destructive: oklch(0.65 0.2 25);            /* warm red for errors */
+
+  --border: oklch(0.22 0.01 270);               /* #232336 — subtle borders */
+  --input: oklch(0.20 0.01 270);                /* #1e1e30 — input backgrounds */
+  --ring: oklch(0.55 0.22 25);                  /* primary red for focus rings */
+
+  --chart-1: oklch(0.55 0.22 25);               /* crimson */
+  --chart-2: oklch(0.65 0.18 160);              /* teal */
+  --chart-3: oklch(0.70 0.15 75);               /* gold */
+  --chart-4: oklch(0.60 0.20 280);              /* purple */
+  --chart-5: oklch(0.65 0.16 200);              /* sky blue */
+
+  --sidebar: oklch(0.10 0.006 270);             /* #0e0e1a — sidebar bg */
+  --sidebar-foreground: oklch(0.90 0 0);
+  --sidebar-primary: oklch(0.55 0.22 25);       /* red accent */
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.18 0.01 270);
+  --sidebar-accent-foreground: oklch(0.90 0 0);
+  --sidebar-border: oklch(0.20 0.01 270);
+  --sidebar-ring: oklch(0.55 0.22 25);
+
+  /* --- Cinema-specific tokens --- */
+  --cinema-bg: oklch(0.06 0.005 270);           /* #08080e — deepest bg */
+  --cinema-surface: oklch(0.12 0.006 270);      /* #141420 — card surface */
+  --cinema-elevated: oklch(0.16 0.008 270);     /* #1a1a28 — elevated panels */
+  --cinema-red: oklch(0.55 0.22 25);            /* #e50914 — primary CTA */
+  --cinema-red-hover: oklch(0.50 0.24 25);      /* darker red hover */
+  --cinema-gold: oklch(0.76 0.15 85);           /* #d4a843 — premium accent */
+  --cinema-muted: oklch(0.55 0.01 270);         /* #6b6b80 — secondary text */
+  --cinema-border: oklch(0.18 0.01 270);        /* #1e1e2e — borders */
+  --cinema-overlay: oklch(0 0 0 / 75%);         /* modal/overlay backdrop */
+}
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrolling for the entire page */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbars on carousels but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom thin scrollbar for admin panels */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.25 0.01 270) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: oklch(0.25 0.01 270);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: oklch(0.35 0.01 270);
+  }
+}
+
+/* ==========================================================================
+   VIDEO.JS OVERRIDES — Cinema skin
+   ========================================================================== */
+
+.video-js {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.video-js .vjs-big-play-button {
+  background-color: oklch(0.55 0.22 25 / 90%);
+  border: none;
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  line-height: 72px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+}
+
+.video-js .vjs-big-play-button:hover {
+  background-color: oklch(0.60 0.24 25);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.video-js .vjs-control-bar {
+  background: linear-gradient(to top, oklch(0 0 0 / 80%), transparent);
+  height: 48px;
+}
+
+.video-js .vjs-play-progress,
+.video-js .vjs-volume-level {
+  background-color: oklch(0.55 0.22 25);
+}
+
+.video-js .vjs-slider {
+  background-color: oklch(1 0 0 / 20%);
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+/* Gradient overlays for hero banners and cards */
+.cinema-gradient-bottom {
+  background: linear-gradient(to top, oklch(0.06 0.005 270) 0%, transparent 100%);
+}
+
+.cinema-gradient-right {
+  background: linear-gradient(to right, oklch(0.06 0.005 270) 0%, transparent 60%);
+}
+
+.cinema-gradient-card {
+  background: linear-gradient(to top, oklch(0 0 0 / 85%) 0%, transparent 60%);
+}
+
+/* Text gradient for premium/gold accents */
+.text-gradient-gold {
+  background: linear-gradient(135deg, oklch(0.76 0.15 85), oklch(0.82 0.12 70));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effect for primary buttons */
+.glow-red {
+  box-shadow: 0 0 20px oklch(0.55 0.22 25 / 30%),
+              0 0 40px oklch(0.55 0.22 25 / 15%);
+}
+
+.glow-red:hover {
+  box-shadow: 0 0 24px oklch(0.55 0.22 25 / 40%),
+              0 0 48px oklch(0.55 0.22 25 / 20%);
+}
