@@ -9,19 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import {
-  saveApiConfig,
-  testApiConnection,
-  getApiProviders,
-} from "@/lib/admin/api-config-actions";
 import type { ApiTestStatus } from "@/lib/supabase/types";
 import {
   Loader2,
@@ -35,6 +23,34 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// API helpers (fetch-based, no server actions)
+// ---------------------------------------------------------------------------
+
+async function fetchApiProviders() {
+  const res = await fetch("/api/admin/api-providers");
+  if (!res.ok) throw new Error("Failed to fetch providers");
+  return res.json();
+}
+
+async function apiSaveConfig(data: Record<string, unknown>) {
+  const res = await fetch("/api/admin/api-providers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+async function apiTestConnection(providerName: string) {
+  const res = await fetch("/api/admin/api-providers/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ providerName }),
+  });
+  return res.json();
+}
 
 // ---------------------------------------------------------------------------
 // Provider Configuration Form
@@ -59,21 +75,22 @@ function ProviderConfigCard({
   const [secretKey, setSecretKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
-  const [isSaving, startSaveTransition] = useTransition();
-  const [isTesting, startTestTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<ApiTestStatus | null>(null);
   const [testMessage, setTestMessage] = useState("");
 
   const { data: providerInfo } = useQuery({
     queryKey: ["api-providers"],
-    queryFn: getApiProviders,
+    queryFn: fetchApiProviders,
     select: (data) =>
-      data.data.find((p) => p.provider_name === providerName),
+      data.data?.find((p: { provider_name: string }) => p.provider_name === providerName),
   });
 
   async function handleSave() {
-    startSaveTransition(async () => {
-      const result = await saveApiConfig({
+    setIsSaving(true);
+    try {
+      const result = await apiSaveConfig({
         provider_name: providerName,
         provider_type: providerType,
         base_url: baseUrl,
@@ -87,36 +104,32 @@ function ProviderConfigCard({
         toast({ title: "Saved", description: `${providerName} configuration saved.` });
         queryClient.invalidateQueries({ queryKey: ["api-providers"] });
       } else {
-        toast({
-          title: "Error",
-          description: result.error ?? "Failed to save",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: result.error ?? "Failed to save", variant: "destructive" });
       }
-    });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleTest() {
-    startTestTransition(async () => {
-      setTestStatus("pending");
-      setTestMessage("Testing connection...");
-
-      const result = await testApiConnection(providerName);
+    setIsTesting(true);
+    setTestStatus("pending");
+    setTestMessage("Testing connection...");
+    try {
+      const result = await apiTestConnection(providerName);
       setTestStatus(result.status);
       setTestMessage(result.message);
 
       if (result.success) {
         toast({ title: "Connected!", description: result.message });
       } else {
-        toast({
-          title: "Connection Failed",
-          description: result.message,
-          variant: "destructive",
-        });
+        toast({ title: "Connection Failed", description: result.message, variant: "destructive" });
       }
 
       queryClient.invalidateQueries({ queryKey: ["api-providers"] });
-    });
+    } finally {
+      setIsTesting(false);
+    }
   }
 
   const statusColors: Record<ApiTestStatus, string> = {

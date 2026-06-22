@@ -1,0 +1,1177 @@
+     1→"use client";
+     2→
+     3→/**
+     4→ * EpisodeManagerClient
+     5→ *
+     6→ * Full episode management UI for a single content item.
+     7→ * Features:
+     8→ *   - Episode list table with lock/trial badges and inline toggle switches
+     9→ *   - Add / Edit episode dialog with external URL video input (no file upload)
+    10→ *   - Bulk actions: Unlock All, Lock All, Set First 3 as Free Trial
+    11→ *   - React Query for data fetching + optimistic-aware mutations
+    12→ *   - Loading skeletons, empty state, delete confirmation
+    13→ */
+    14→
+    15→import { useState, useCallback } from "react";
+    16→import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+    17→import Link from "next/link";
+    18→import { AdminHeader } from "@/components/admin/AdminHeader";
+    19→import { Button } from "@/components/ui/button";
+    20→import { Input } from "@/components/ui/input";
+    21→import { Textarea } from "@/components/ui/textarea";
+    22→import { Label } from "@/components/ui/label";
+    23→import { Badge } from "@/components/ui/badge";
+    24→import { Card, CardContent } from "@/components/ui/card";
+    25→import { Skeleton } from "@/components/ui/skeleton";
+    26→import { Switch } from "@/components/ui/switch";
+    27→import { Separator } from "@/components/ui/separator";
+    28→import {
+    29→  Dialog,
+    30→  DialogContent,
+    31→  DialogDescription,
+    32→  DialogFooter,
+    33→  DialogHeader,
+    34→  DialogTitle,
+    35→} from "@/components/ui/dialog";
+    36→import {
+    37→  AlertDialog,
+    38→  AlertDialogAction,
+    39→  AlertDialogCancel,
+    40→  AlertDialogContent,
+    41→  AlertDialogDescription,
+    42→  AlertDialogFooter,
+    43→  AlertDialogHeader,
+    44→  AlertDialogTitle,
+    45→} from "@/components/ui/alert-dialog";
+    46→import {
+    47→  Table,
+    48→  TableBody,
+    49→  TableCell,
+    50→  TableHead,
+    51→  TableHeader,
+    52→  TableRow,
+    53→} from "@/components/ui/table";
+    54→import { useToast } from "@/hooks/use-toast";
+    55→import {
+    56→  getEpisodes,
+    57→  createEpisode,
+    58→  updateEpisode,
+    59→  deleteEpisode,
+    60→  updateEpisodeLock,
+    61→  bulkUpdateEpisodeLocks,
+    62→} from "@/lib/admin/content-actions";
+    63→import type { Episode, ContentType } from "@/lib/supabase/types";
+    64→import {
+    65→  Plus,
+    66→  Pencil,
+    67→  Trash2,
+    68→  Lock,
+    69→  Unlock,
+    70→  Gift,
+    71→  Video,
+    72→  Loader2,
+    73→  ExternalLink,
+    74→  Link2,
+    75→  AlertCircle,
+    76→  Save,
+    77→  ListVideo,
+    78→  ShieldCheck,
+    79→  ShieldX,
+    80→  ArrowLeft,
+    81→  Clock,
+    82→  Image,
+    83→} from "lucide-react";
+    84→
+    85→// ---------------------------------------------------------------------------
+    86→// Constants
+    87→// ---------------------------------------------------------------------------
+    88→
+    89→const QUERY_KEY = (contentId: string) => ["episodes", contentId] as const;
+    90→
+    91→function formatRuntime(seconds: number | null): string {
+    92→  if (!seconds) return "—";
+    93→  const m = Math.floor(seconds / 60);
+    94→  const s = seconds % 60;
+    95→  return `${m}:${s.toString().padStart(2, "0")}`;
+    96→}
+    97→
+    98→function truncateUrl(url: string, maxLen = 40): string {
+    99→  if (url.length <= maxLen) return url;
+   100→  return url.slice(0, maxLen) + "…";
+   101→}
+   102→
+   103→function extractSubtitleUrl(
+   104→  subtitles: Record<string, string>[] | null,
+   105→): string {
+   106→  if (!subtitles || subtitles.length === 0) return "";
+   107→  return subtitles[0].url || "";
+   108→}
+   109→
+   110→// ---------------------------------------------------------------------------
+   111→// Episode Form Dialog (Add / Edit)
+   112→// ---------------------------------------------------------------------------
+   113→
+   114→interface EpisodeFormState {
+   115→  episode_number: string;
+   116→  title: string;
+   117→  synopsis: string;
+   118→  thumbnail_url: string;
+   119→  video_url: string;
+   120→  video_url_backup: string;
+   121→  subtitle_url: string;
+   122→  is_locked: boolean;
+   123→  is_free_trial: boolean;
+   124→}
+   125→
+   126→const EMPTY_FORM: EpisodeFormState = {
+   127→  episode_number: "",
+   128→  title: "",
+   129→  synopsis: "",
+   130→  thumbnail_url: "",
+   131→  video_url: "",
+   132→  video_url_backup: "",
+   133→  subtitle_url: "",
+   134→  is_locked: false,
+   135→  is_free_trial: false,
+   136→};
+   137→
+   138→function episodeToForm(episode: Episode): EpisodeFormState {
+   139→  return {
+   140→    episode_number: String(episode.episode_number),
+   141→    title: episode.title || "",
+   142→    synopsis: episode.synopsis || "",
+   143→    thumbnail_url: episode.thumbnail_url || "",
+   144→    video_url: episode.video_url || "",
+   145→    video_url_backup: episode.video_url_backup || "",
+   146→    subtitle_url: extractSubtitleUrl(episode.subtitles_url),
+   147→    is_locked: episode.is_locked,
+   148→    is_free_trial: episode.is_free_trial,
+   149→  };
+   150→}
+   151→
+   152→function EpisodeFormDialog({
+   153→  open,
+   154→  onOpenChange,
+   155→  episode,
+   156→  contentId,
+   157→  isSaving,
+   158→  onSave,
+   159→}: {
+   160→  open: boolean;
+   161→  onOpenChange: (open: boolean) => void;
+   162→  episode: Episode | null; // null = adding, non-null = editing
+   163→  contentId: string;
+   164→  isSaving: boolean;
+   165→  onSave: (data: Record<string, unknown>) => void;
+   166→}) {
+   167→  const [form, setForm] = useState<EpisodeFormState>(EMPTY_FORM);
+   168→  const [error, setError] = useState<string | null>(null);
+   169→
+   170→  // Populate form when episode changes or dialog opens
+   171→  const handleOpen = useCallback(
+   172→    (isOpen: boolean) => {
+   173→      if (isOpen) {
+   174→        setForm(episode ? episodeToForm(episode) : { ...EMPTY_FORM });
+   175→        setError(null);
+   176→      }
+   177→      onOpenChange(isOpen);
+   178→    },
+   179→    [episode, onOpenChange],
+   180→  );
+   181→
+   182→  function updateField<K extends keyof EpisodeFormState>(
+   183→    key: K,
+   184→    value: EpisodeFormState[K],
+   185→  ) {
+   186→    setForm((prev) => ({ ...prev, [key]: value }));
+   187→    if (error) setError(null);
+   188→  }
+   189→
+   190→  function handleSubmit() {
+   191→    // Client-side validation
+   192→    const epNum = parseInt(form.episode_number, 10);
+   193→    if (!epNum || epNum < 1) {
+   194→      setError("Episode number must be at least 1");
+   195→      return;
+   196→    }
+   197→    if (!form.video_url.trim()) {
+   198→      setError("Video URL is required");
+   199→      return;
+   200→    }
+   201→    if (
+   202→      !form.video_url.startsWith("http://") &&
+   203→      !form.video_url.startsWith("https://")
+   204→    ) {
+   205→      setError("Video URL must start with http:// or https://");
+   206→      return;
+   207→    }
+   208→
+   209→    onSave({
+   210→      episode_number: epNum,
+   211→      title: form.title || undefined,
+   212→      synopsis: form.synopsis || undefined,
+   213→      thumbnail_url: form.thumbnail_url || undefined,
+   214→      video_url: form.video_url.trim(),
+   215→      video_url_backup: form.video_url_backup || undefined,
+   216→      subtitle_url: form.subtitle_url || undefined,
+   217→      is_locked: form.is_locked,
+   218→      is_free_trial: form.is_free_trial,
+   219→    });
+   220→  }
+   221→
+   222→  const isEditing = episode !== null;
+   223→
+   224→  return (
+   225→    <Dialog open={open} onOpenChange={handleOpen}>
+   226→      <DialogContent className="bg-cinema-surface border-cinema-border max-w-lg max-h-[90vh] overflow-y-auto">
+   227→        <DialogHeader>
+   228→          <DialogTitle className="text-foreground">
+   229→            {isEditing
+   230→              ? `Edit Episode ${episode!.episode_number}`
+   231→              : "Add New Episode"}
+   232→          </DialogTitle>
+   233→          <DialogDescription className="text-muted-foreground">
+   234→            {isEditing
+   235→              ? "Update episode details, video source, and access control."
+   236→              : "Fill in the episode details. Video URL is required."}
+   237→          </DialogDescription>
+   238→        </DialogHeader>
+   239→
+   240→        <div className="space-y-4 py-2">
+   241→          {/* Error display */}
+   242→          {error && (
+   243→            <div className="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 text-sm text-destructive flex items-center gap-2">
+   244→              <AlertCircle className="w-4 h-4 shrink-0" />
+   245→              {error}
+   246→            </div>
+   247→          )}
+   248→
+   249→          {/* Episode Number */}
+   250→          <div className="space-y-1.5">
+   251→            <Label htmlFor="ep-number" className="text-sm text-foreground">
+   252→              Episode Number <span className="text-destructive">*</span>
+   253→            </Label>
+   254→            <Input
+   255→              id="ep-number"
+   256→              type="number"
+   257→              min={1}
+   258→              value={form.episode_number}
+   259→              onChange={(e) => updateField("episode_number", e.target.value)}
+   260→              placeholder="e.g. 1"
+   261→              className="h-9 bg-cinema-elevated border-cinema-border text-sm"
+   262→            />
+   263→          </div>
+   264→
+   265→          {/* Title */}
+   266→          <div className="space-y-1.5">
+   267→            <Label htmlFor="ep-title" className="text-sm text-foreground">
+   268→              Title
+   269→            </Label>
+   270→            <Input
+   271→              id="ep-title"
+   272→              value={form.title}
+   273→              onChange={(e) => updateField("title", e.target.value)}
+   274→              placeholder="e.g. The Beginning"
+   275→              className="h-9 bg-cinema-elevated border-cinema-border text-sm"
+   276→            />
+   277→          </div>
+   278→
+   279→          {/* Synopsis */}
+   280→          <div className="space-y-1.5">
+   281→            <Label htmlFor="ep-synopsis" className="text-sm text-foreground">
+   282→              Synopsis
+   283→            </Label>
+   284→            <Textarea
+   285→              id="ep-synopsis"
+   286→              value={form.synopsis}
+   287→              onChange={(e) => updateField("synopsis", e.target.value)}
+   288→              placeholder="Brief episode description..."
+   289→              rows={3}
+   290→              className="bg-cinema-elevated border-cinema-border text-sm resize-none"
+   291→            />
+   292→          </div>
+   293→
+   294→          {/* Thumbnail URL */}
+   295→          <div className="space-y-1.5">
+   296→            <Label htmlFor="ep-thumb" className="text-sm text-foreground">
+   297→              Thumbnail URL
+   298→            </Label>
+   299→            <div className="relative">
+   300→              <Image className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+   301→              <Input
+   302→                id="ep-thumb"
+   303→                value={form.thumbnail_url}
+   304→                onChange={(e) => updateField("thumbnail_url", e.target.value)}
+   305→                placeholder="https://example.com/thumb.jpg"
+   306→                className="h-9 pl-8 bg-cinema-elevated border-cinema-border text-sm"
+   307→              />
+   308→            </div>
+   309→          </div>
+   310→
+   311→          <Separator className="bg-cinema-border" />
+   312→
+   313→          {/* Video URL — CRITICAL: External URL only, NO file upload */}
+   314→          <div className="space-y-1.5">
+   315→            <Label htmlFor="ep-video" className="text-sm text-foreground">
+   316→              Video URL <span className="text-destructive">*</span>
+   317→            </Label>
+   318→            <div className="relative">
+   319→              <Video className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+   320→              <Input
+   321→                id="ep-video"
+   322→                value={form.video_url}
+   323→                onChange={(e) => updateField("video_url", e.target.value)}
+   324→                placeholder="https://cdn.example.com/episode1.m3u8"
+   325→                className="h-9 pl-8 bg-cinema-elevated border-cinema-border text-sm font-mono"
+   326→              />
+   327→            </div>
+   328→            <p className="text-[11px] text-muted-foreground leading-relaxed">
+   329→              Paste HLS (.m3u8) or MP4 link from external host (e.g., Bunny.net,
+   330→              Cloudflare Stream). Do not upload video files directly.
+   331→            </p>
+   332→          </div>
+   333→
+   334→          {/* Backup Video URL */}
+   335→          <div className="space-y-1.5">
+   336→            <Label
+   337→              htmlFor="ep-video-backup"
+   338→              className="text-sm text-foreground"
+   339→            >
+   340→              Backup Video URL
+   341→              <span className="text-muted-foreground font-normal ml-1">
+   342→                (optional)
+   343→              </span>
+   344→            </Label>
+   345→            <div className="relative">
+   346→              <Video className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+   347→              <Input
+   348→                id="ep-video-backup"
+   349→                value={form.video_url_backup}
+   350→                onChange={(e) =>
+   351→                  updateField("video_url_backup", e.target.value)
+   352→                }
+   353→                placeholder="https://backup-cdn.example.com/episode1.m3u8"
+   354→                className="h-9 pl-8 bg-cinema-elevated border-cinema-border text-sm font-mono"
+   355→              />
+   356→            </div>
+   357→          </div>
+   358→
+   359→          {/* Subtitle URL */}
+   360→          <div className="space-y-1.5">
+   361→            <Label htmlFor="ep-subs" className="text-sm text-foreground">
+   362→              Subtitle URL
+   363→              <span className="text-muted-foreground font-normal ml-1">
+   364→                (optional)
+   365→              </span>
+   366→            </Label>
+   367→            <div className="relative">
+   368→              <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+   369→              <Input
+   370→                id="ep-subs"
+   371→                value={form.subtitle_url}
+   372→                onChange={(e) => updateField("subtitle_url", e.target.value)}
+   373→                placeholder="https://example.com/subs/ep1.vtt"
+   374→                className="h-9 pl-8 bg-cinema-elevated border-cinema-border text-sm font-mono"
+   375→              />
+   376→            </div>
+   377→            <p className="text-[11px] text-muted-foreground">
+   378→              Supports .vtt and .srt subtitle files.
+   379→            </p>
+   380→          </div>
+   381→
+   382→          <Separator className="bg-cinema-border" />
+   383→
+   384→          {/* Access Control Toggles */}
+   385→          <div className="space-y-3">
+   386→            <p className="text-sm font-medium text-foreground">
+   387→              Access Control
+   388→            </p>
+   389→
+   390→            <div className="flex items-center justify-between rounded-lg bg-cinema-elevated px-3 py-2.5">
+   391→              <div className="flex items-center gap-2">
+   392→                <Lock className="w-4 h-4 text-muted-foreground" />
+   393→                <div>
+   394→                  <p className="text-sm text-foreground">
+   395→                    Requires Subscription
+   396→                  </p>
+   397→                  <p className="text-[11px] text-muted-foreground">
+   398→                    Episode is locked for non-subscribers
+   399→                  </p>
+   400→                </div>
+   401→              </div>
+   402→              <Switch
+   403→                checked={form.is_locked}
+   404→                onCheckedChange={(checked) => updateField("is_locked", checked)}
+   405→                className="data-[state=checked]:bg-cinema-red"
+   406→              />
+   407→            </div>
+   408→
+   409→            <div className="flex items-center justify-between rounded-lg bg-cinema-elevated px-3 py-2.5">
+   410→              <div className="flex items-center gap-2">
+   411→                <Gift className="w-4 h-4 text-cinema-gold" />
+   412→                <div>
+   413→                  <p className="text-sm text-foreground">
+   414→                    Free Trial
+   415→                  </p>
+   416→                  <p className="text-[11px] text-muted-foreground">
+   417→                    Available to non-subscribers as a preview
+   418→                  </p>
+   419→                </div>
+   420→              </div>
+   421→              <Switch
+   422→                checked={form.is_free_trial}
+   423→                onCheckedChange={(checked) =>
+   424→                  updateField("is_free_trial", checked)
+   425→                }
+   426→                className="data-[state=checked]:bg-cinema-gold"
+   427→              />
+   428→            </div>
+   429→          </div>
+   430→        </div>
+   431→
+   432→        <DialogFooter className="gap-2 sm:gap-0">
+   433→          <Button
+   434→            variant="outline"
+   435→            onClick={() => handleOpen(false)}
+   436→            className="border-cinema-border text-sm"
+   437→          >
+   438→            Cancel
+   439→          </Button>
+   440→          <Button
+   441→            onClick={handleSubmit}
+   442→            disabled={isSaving}
+   443→            className="bg-cinema-red hover:bg-cinema-red-hover text-white text-sm"
+   444→          >
+   445→            {isSaving ? (
+   446→              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+   447→            ) : (
+   448→              <Save className="w-4 h-4 mr-1.5" />
+   449→            )}
+   450→            {isEditing ? "Update Episode" : "Add Episode"}
+   451→          </Button>
+   452→        </DialogFooter>
+   453→      </DialogContent>
+   454→    </Dialog>
+   455→  );
+   456→}
+   457→
+   458→// ---------------------------------------------------------------------------
+   459→// Episode Row
+   460→// ---------------------------------------------------------------------------
+   461→
+   462→function EpisodeRow({
+   463→  episode,
+   464→  isUpdatingLock,
+   465→  onToggleLock,
+   466→  onToggleFreeTrial,
+   467→  onEdit,
+   468→  onDelete,
+   469→}: {
+   470→  episode: Episode;
+   471→  isUpdatingLock: boolean;
+   472→  onToggleLock: (val: boolean) => void;
+   473→  onToggleFreeTrial: (val: boolean) => void;
+   474→  onEdit: () => void;
+   475→  onDelete: () => void;
+   476→}) {
+   477→  const hasVideo = !!episode.video_url;
+   478→
+   479→  return (
+   480→    <TableRow className="border-cinema-border hover:bg-accent/50 group">
+   481→      {/* Episode Number */}
+   482→      <TableCell className="w-16">
+   483→        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-cinema-elevated text-sm font-semibold text-foreground">
+   484→          {episode.episode_number}
+   485→        </span>
+   486→      </TableCell>
+   487→
+   488→      {/* Thumbnail */}
+   489→      <TableCell className="w-14">
+   490→        {episode.thumbnail_url ? (
+   491→          <img
+   492→            src={episode.thumbnail_url}
+   493→            alt=""
+   494→            className="w-10 h-7 object-cover rounded border border-cinema-border"
+   495→          />
+   496→        ) : (
+   497→          <div className="w-10 h-7 rounded bg-cinema-elevated border border-cinema-border flex items-center justify-center">
+   498→            <Image className="w-3.5 h-3.5 text-muted-foreground/40" />
+   499→          </div>
+   500→        )}
+   501→      </TableCell>
+   502→
+   503→      {/* Title */}
+   504→      <TableCell className="max-w-[200px]">
+   505→        <p className="text-sm font-medium text-foreground truncate">
+   506→          {episode.title || `Episode ${episode.episode_number}`}
+   507→        </p>
+   508→        {episode.synopsis && (
+   509→          <p className="text-xs text-muted-foreground truncate mt-0.5">
+   510→            {episode.synopsis}
+   511→          </p>
+   512→        )}
+   513→      </TableCell>
+   514→
+   515→      {/* Video URL */}
+   516→      <TableCell className="max-w-[180px]">
+   517→        {hasVideo ? (
+   518→          <a
+   519→            href={episode.video_url}
+   520→            target="_blank"
+   521→            rel="noopener noreferrer"
+   522→            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+   523→          >
+   524→            <span className="truncate font-mono max-w-[140px]">
+   525→              {truncateUrl(episode.video_url, 30)}
+   526→            </span>
+   527→            <ExternalLink className="w-3 h-3 shrink-0 opacity-50" />
+   528→          </a>
+   529→        ) : (
+   530→          <span className="text-xs text-destructive">No URL</span>
+   531→        )}
+   532→      </TableCell>
+   533→
+   534→      {/* Runtime */}
+   535→      <TableCell className="w-16 text-center">
+   536→        <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+   537→          <Clock className="w-3 h-3" />
+   538→          {formatRuntime(episode.runtime_seconds)}
+   539→        </span>
+   540→      </TableCell>
+   541→
+   542→      {/* Status Badges */}
+   543→      <TableCell className="w-28">
+   544→        <div className="flex items-center gap-1.5 flex-wrap">
+   545→          {episode.is_locked ? (
+   546→            <Badge
+   547→              variant="outline"
+   548→              className="text-[10px] border-red-500/40 text-red-400 bg-red-500/10 gap-1"
+   549→            >
+   550→              <Lock className="w-2.5 h-2.5" />
+   551→              Locked
+   552→            </Badge>
+   553→          ) : (
+   554→            <Badge
+   555→              variant="outline"
+   556→              className="text-[10px] border-emerald-500/40 text-emerald-400 bg-emerald-500/10 gap-1"
+   557→            >
+   558→              <Unlock className="w-2.5 h-2.5" />
+   559→              Open
+   560→            </Badge>
+   561→          )}
+   562→          {episode.is_free_trial && (
+   563→            <Badge
+   564→              variant="outline"
+   565→              className="text-[10px] border-amber-500/40 text-cinema-gold bg-amber-500/10 gap-1"
+   566→            >
+   567→              <Gift className="w-2.5 h-2.5" />
+   568→              Trial
+   569→            </Badge>
+   570→          )}
+   571→        </div>
+   572→      </TableCell>
+   573→
+   574→      {/* Toggle Switches */}
+   575→      <TableCell className="w-48">
+   576→        <div className="flex items-center gap-4">
+   577→          <div className="flex items-center gap-2">
+   578→            <Switch
+   579→              checked={episode.is_locked}
+   580→              onCheckedChange={onToggleLock}
+   581→              disabled={isUpdatingLock}
+   582→              className="data-[state=checked]:bg-cinema-red"
+   583→            />
+   584→            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+   585→              Lock
+   586→            </span>
+   587→          </div>
+   588→          <div className="flex items-center gap-2">
+   589→            <Switch
+   590→              checked={episode.is_free_trial}
+   591→              onCheckedChange={onToggleFreeTrial}
+   592→              disabled={isUpdatingLock}
+   593→              className="data-[state=checked]:bg-cinema-gold"
+   594→            />
+   595→            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+   596→              Trial
+   597→            </span>
+   598→          </div>
+   599→        </div>
+   600→      </TableCell>
+   601→
+   602→      {/* Actions */}
+   603→      <TableCell className="w-20 text-right">
+   604→        <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+   605→          <Button
+   606→            variant="ghost"
+   607→            size="sm"
+   608→            onClick={onEdit}
+   609→            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+   610→          >
+   611→            <Pencil className="w-3.5 h-3.5" />
+   612→          </Button>
+   613→          <Button
+   614→            variant="ghost"
+   615→            size="sm"
+   616→            onClick={onDelete}
+   617→            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+   618→          >
+   619→            <Trash2 className="w-3.5 h-3.5" />
+   620→          </Button>
+   621→        </div>
+   622→      </TableCell>
+   623→    </TableRow>
+   624→  );
+   625→}
+   626→
+   627→// ---------------------------------------------------------------------------
+   628→// Loading Skeleton
+   629→// ---------------------------------------------------------------------------
+   630→
+   631→function EpisodeTableSkeleton() {
+   632→  return (
+   633→    <Card className="bg-cinema-surface border-cinema-border">
+   634→      <CardContent className="p-0">
+   635→        <Table>
+   636→          <TableHeader>
+   637→            <TableRow className="border-cinema-border hover:bg-transparent">
+   638→              <TableHead className="text-xs text-muted-foreground w-16">
+   639→                #
+   640→              </TableHead>
+   641→              <TableHead className="text-xs text-muted-foreground w-14" />
+   642→              <TableHead className="text-xs text-muted-foreground">
+   643→                Title
+   644→              </TableHead>
+   645→              <TableHead className="text-xs text-muted-foreground">
+   646→                Video
+   647→              </TableHead>
+   648→              <TableHead className="text-xs text-muted-foreground w-16 text-center">
+   649→                Runtime
+   650→              </TableHead>
+   651→              <TableHead className="text-xs text-muted-foreground w-28">
+   652→                Status
+   653→              </TableHead>
+   654→              <TableHead className="text-xs text-muted-foreground w-48">
+   655→                Controls
+   656→              </TableHead>
+   657→              <TableHead className="text-xs text-muted-foreground w-20 text-right">
+   658→                Actions
+   659→              </TableHead>
+   660→            </TableRow>
+   661→          </TableHeader>
+   662→          <TableBody>
+   663→            {[...Array(6)].map((_, i) => (
+   664→              <TableRow key={i} className="border-cinema-border">
+   665→                <TableCell>
+   666→                  <Skeleton className="h-8 w-8 rounded-full mx-auto" />
+   667→                </TableCell>
+   668→                <TableCell>
+   669→                  <Skeleton className="h-7 w-10 rounded" />
+   670→                </TableCell>
+   671→                <TableCell className="space-y-1.5">
+   672→                  <Skeleton className="h-4 w-32" />
+   673→                  <Skeleton className="h-3 w-48" />
+   674→                </TableCell>
+   675→                <TableCell>
+   676→                  <Skeleton className="h-3 w-28" />
+   677→                </TableCell>
+   678→                <TableCell>
+   679→                  <Skeleton className="h-3 w-8 mx-auto" />
+   680→                </TableCell>
+   681→                <TableCell>
+   682→                  <Skeleton className="h-5 w-16" />
+   683→                </TableCell>
+   684→                <TableCell>
+   685→                  <div className="flex gap-4">
+   686→                    <Skeleton className="h-4 w-16" />
+   687→                    <Skeleton className="h-4 w-16" />
+   688→                  </div>
+   689→                </TableCell>
+   690→                <TableCell>
+   691→                  <div className="flex gap-1 justify-end">
+   692→                    <Skeleton className="h-7 w-7" />
+   693→                    <Skeleton className="h-7 w-7" />
+   694→                  </div>
+   695→                </TableCell>
+   696→              </TableRow>
+   697→            ))}
+   698→          </TableBody>
+   699→        </Table>
+   700→      </CardContent>
+   701→    </Card>
+   702→  );
+   703→}
+   704→
+   705→// ---------------------------------------------------------------------------
+   706→// Main EpisodeManagerClient
+   707→// ---------------------------------------------------------------------------
+   708→
+   709→export function EpisodeManagerClient({
+   710→  contentId,
+   711→  contentTitle,
+   712→  contentType,
+   713→}: {
+   714→  contentId: string;
+   715→  contentTitle: string;
+   716→  contentType: ContentType;
+   717→}) {
+   718→  const { toast } = useToast();
+   719→  const queryClient = useQueryClient();
+   720→
+   721→  // ---- State ----
+   722→  const [dialogOpen, setDialogOpen] = useState(false);
+   723→  const [editingEpisode, setEditingEpisode] = useState<Episode | null>(null);
+   724→  const [deletingEpisode, setDeletingEpisode] = useState<Episode | null>(null);
+   725→  const [updatingLockId, setUpdatingLockId] = useState<string | null>(null);
+   726→
+   727→  // ---- Query: Fetch episodes ----
+   728→  const {
+   729→    data: episodes = [],
+   730→    isLoading,
+   731→    isError,
+   732→  } = useQuery({
+   733→    queryKey: QUERY_KEY(contentId),
+   734→    queryFn: async () => {
+   735→      const result = await getEpisodes(contentId);
+   736→      if (result.error) throw new Error(result.error);
+   737→      return result.data;
+   738→    },
+   739→    staleTime: 1000 * 60 * 2, // 2 min stale time for admin edits
+   740→    retry: 1,
+   741→  });
+   742→
+   743→  // ---- Mutation: Create / Update episode ----
+   744→  const saveMutation = useMutation({
+   745→    mutationFn: async (data: Record<string, unknown>) => {
+   746→      if (editingEpisode) {
+   747→        const result = await updateEpisode(editingEpisode.id, data);
+   748→        if (!result.success) throw new Error(result.error ?? "Update failed");
+   749→      } else {
+   750→        const result = await createEpisode(contentId, data);
+   751→        if (!result.success) throw new Error(result.error ?? "Create failed");
+   752→      }
+   753→    },
+   754→    onSuccess: () => {
+   755→      queryClient.invalidateQueries({ queryKey: QUERY_KEY(contentId) });
+   756→      setDialogOpen(false);
+   757→      setEditingEpisode(null);
+   758→      toast({
+   759→        title: editingEpisode ? "Episode updated" : "Episode added",
+   760→        description: editingEpisode
+   761→          ? `Episode ${editingEpisode.episode_number} has been updated.`
+   762→          : "New episode has been added to this content.",
+   763→      });
+   764→    },
+   765→    onError: (err) => {
+   766→      toast({
+   767→        title: "Save failed",
+   768→        description: err.message,
+   769→        variant: "destructive",
+   770→      });
+   771→    },
+   772→  });
+   773→
+   774→  // ---- Mutation: Delete episode ----
+   775→  const deleteMutation = useMutation({
+   776→    mutationFn: async (episodeId: string) => {
+   777→      const result = await deleteEpisode(episodeId);
+   778→      if (!result.success) throw new Error(result.error ?? "Delete failed");
+   779→    },
+   780→    onSuccess: () => {
+   781→      queryClient.invalidateQueries({ queryKey: QUERY_KEY(contentId) });
+   782→      setDeletingEpisode(null);
+   783→      toast({
+   784→        title: "Episode deleted",
+   785→        description: "The episode has been permanently removed.",
+   786→      });
+   787→    },
+   788→    onError: (err) => {
+   789→      toast({
+   790→        title: "Delete failed",
+   791→        description: err.message,
+   792→        variant: "destructive",
+   793→      });
+   794→    },
+   795→  });
+   796→
+   797→  // ---- Mutation: Toggle individual episode lock ----
+   798→  const toggleLockMutation = useMutation({
+   799→    mutationFn: async ({
+   800→      episodeId,
+   801→      updates,
+   802→    }: {
+   803→      episodeId: string;
+   804→      updates: { is_locked?: boolean; is_free_trial?: boolean };
+   805→    }) => {
+   806→      const result = await updateEpisodeLock(episodeId, updates);
+   807→      if (!result.success) throw new Error(result.error ?? "Toggle failed");
+   808→    },
+   809→    onSuccess: () => {
+   810→      queryClient.invalidateQueries({ queryKey: QUERY_KEY(contentId) });
+   811→      setUpdatingLockId(null);
+   812→    },
+   813→    onError: (err) => {
+   814→      setUpdatingLockId(null);
+   815→      toast({
+   816→        title: "Toggle failed",
+   817→        description: err.message,
+   818→        variant: "destructive",
+   819→      });
+   820→    },
+   821→  });
+   822→
+   823→  // ---- Mutation: Bulk update episode locks ----
+   824→  const bulkMutation = useMutation({
+   825→    mutationFn: async (updates: {
+   826→      is_locked?: boolean;
+   827→      is_free_trial?: boolean;
+   828→      episodeIds?: string[];
+   829→    }) => {
+   830→      const result = await bulkUpdateEpisodeLocks(contentId, updates);
+   831→      if (!result.success) throw new Error(result.error ?? "Bulk update failed");
+   832→      return result.updated;
+   833→    },
+   834→    onSuccess: (updated) => {
+   835→      queryClient.invalidateQueries({ queryKey: QUERY_KEY(contentId) });
+   836→      toast({
+   837→        title: "Bulk update applied",
+   838→        description: `${updated} episode${updated !== 1 ? "s" : ""} updated.`,
+   839→      });
+   840→    },
+   841→    onError: (err) => {
+   842→      toast({
+   843→        title: "Bulk update failed",
+   844→        description: err.message,
+   845→        variant: "destructive",
+   846→      });
+   847→    },
+   848→  });
+   849→
+   850→  // ---- Handlers ----
+   851→  function handleOpenAdd() {
+   852→    setEditingEpisode(null);
+   853→    setDialogOpen(true);
+   854→  }
+   855→
+   856→  function handleOpenEdit(episode: Episode) {
+   857→    setEditingEpisode(episode);
+   858→    setDialogOpen(true);
+   859→  }
+   860→
+   861→  function handleSave(data: Record<string, unknown>) {
+   862→    saveMutation.mutate(data);
+   863→  }
+   864→
+   865→  function handleToggleLock(episode: Episode, value: boolean) {
+   866→    setUpdatingLockId(episode.id);
+   867→    toggleLockMutation.mutate({
+   868→      episodeId: episode.id,
+   869→      updates: { is_locked: value },
+   870→    });
+   871→  }
+   872→
+   873→  function handleToggleFreeTrial(episode: Episode, value: boolean) {
+   874→    setUpdatingLockId(episode.id);
+   875→    toggleLockMutation.mutate({
+   876→      episodeId: episode.id,
+   877→      updates: { is_free_trial: value },
+   878→    });
+   879→  }
+   880→
+   881→  function handleBulkUnlockAll() {
+   882→    if (episodes.length === 0) return;
+   883→    bulkMutation.mutate({ is_locked: false });
+   884→  }
+   885→
+   886→  function handleBulkLockAll() {
+   887→    if (episodes.length === 0) return;
+   888→    bulkMutation.mutate({ is_locked: true });
+   889→  }
+   890→
+   891→  function handleBulkSetFirst3FreeTrial() {
+   892→    if (episodes.length === 0) return;
+   893→    // Get first 3 episode IDs (sorted by episode_number already from query)
+   894→    const first3Ids = episodes.slice(0, 3).map((ep) => ep.id);
+   895→    // Set all as NOT free trial first, then set first 3 as free trial
+   896→    bulkMutation.mutate({
+   897→      is_free_trial: false,
+   898→    });
+   899→    // After that succeeds, set first 3 as free trial
+   900→    // We do it in a single call by first clearing all, then setting first 3
+   901→    // Actually, let's do it smarter: set all to false, then the first 3 to true
+   902→    bulkUpdateEpisodeLocks(contentId, { is_free_trial: false }).then(
+   903→      (clearResult) => {
+   904→        if (clearResult.success && first3Ids.length > 0) {
+   905→          bulkUpdateEpisodeLocks(contentId, {
+   906→            is_free_trial: true,
+   907→            episodeIds: first3Ids,
+   908→          }).then((setResult) => {
+   909→            queryClient.invalidateQueries({
+   910→              queryKey: QUERY_KEY(contentId),
+   911→            });
+   912→            toast({
+   913→              title: "Free trial applied",
+   914→              description: `First ${first3Ids.length} episodes set as free trial.`,
+   915→            });
+   916→          });
+   917→        }
+   918→      },
+   919→    );
+   920→  }
+   921→
+   922→  const hasEpisodes = episodes.length > 0;
+   923→  const isBulkActionLoading = bulkMutation.isPending;
+   924→
+   925→  return (
+   926→    <>
+   927→      <AdminHeader title={`Episodes — ${contentTitle}`} />
+   928→
+   929→      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+   930→        {/* Back link + Breadcrumb */}
+   931→        <div className="flex items-center gap-2 text-sm">
+   932→          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground h-7 px-2">
+   933→            <Link href="/admin/content">
+   934→              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+   935→              Content
+   936→            </Link>
+   937→          </Button>
+   938→          <span className="text-muted-foreground/40">/</span>
+   939→          <span className="text-foreground font-medium truncate max-w-[200px]">
+   940→            {contentTitle}
+   941→          </span>
+   942→          <Badge
+   943→            variant="outline"
+   944→            className="text-[10px] capitalize border-cinema-border text-muted-foreground ml-1"
+   945→          >
+   946→            {contentType}
+   947→          </Badge>
+   948→        </div>
+   949→
+   950→        {/* Bulk Actions Toolbar */}
+   951→        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+   952→          <div className="flex items-center gap-2 flex-wrap">
+   953→            <span className="text-sm text-muted-foreground mr-1">
+   954→              <ListVideo className="w-4 h-4 inline mr-1" />
+   955→              {isLoading ? (
+   956→                <Skeleton className="h-4 w-24 inline-block align-middle" />
+   957→              ) : (
+   958→                <span className="text-foreground font-medium">
+   959→                  {episodes.length}
+   960→                </span>
+   961→              )}{" "}
+   962→              episode{episodes.length !== 1 ? "s" : ""}
+   963→            </span>
+   964→
+   965→            <Separator
+   966→              orientation="vertical"
+   967→              className="h-5 bg-cinema-border hidden sm:block"
+   968→            />
+   969→
+   970→            <Button
+   971→              variant="outline"
+   972→              size="sm"
+   973→              onClick={handleBulkUnlockAll}
+   974→              disabled={isBulkActionLoading || !hasEpisodes}
+   975→              className="border-cinema-border text-xs h-8"
+   976→            >
+   977→              {isBulkActionLoading ? (
+   978→                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+   979→              ) : (
+   980→                <Unlock className="w-3.5 h-3.5 mr-1.5" />
+   981→              )}
+   982→              Unlock All
+   983→            </Button>
+   984→            <Button
+   985→              variant="outline"
+   986→              size="sm"
+   987→              onClick={handleBulkLockAll}
+   988→              disabled={isBulkActionLoading || !hasEpisodes}
+   989→              className="border-cinema-border text-xs h-8"
+   990→            >
+   991→              {isBulkActionLoading ? (
+   992→                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+   993→              ) : (
+   994→                <Lock className="w-3.5 h-3.5 mr-1.5" />
+   995→              )}
+   996→              Lock All
+   997→            </Button>
+   998→            <Button
+   999→              variant="outline"
+  1000→              size="sm"
+  1001→              onClick={handleBulkSetFirst3FreeTrial}
+  1002→              disabled={isBulkActionLoading || !hasEpisodes}
+  1003→              className="border-cinema-border text-xs h-8 text-cinema-gold hover:text-cinema-gold hover:border-cinema-gold/50"
+  1004→            >
+  1005→              {isBulkActionLoading ? (
+  1006→                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+  1007→              ) : (
+  1008→                <Gift className="w-3.5 h-3.5 mr-1.5" />
+  1009→              )}
+  1010→              First 3 Free Trial
+  1011→            </Button>
+  1012→          </div>
+  1013→
+  1014→          <Button
+  1015→            onClick={handleOpenAdd}
+  1016→            className="bg-cinema-red hover:bg-cinema-red-hover text-white text-xs h-8"
+  1017→          >
+  1018→            <Plus className="w-3.5 h-3.5 mr-1.5" />
+  1019→            Add Episode
+  1020→          </Button>
+  1021→        </div>
+  1022→
+  1023→        {/* Error State */}
+  1024→        {isError && (
+  1025→          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive flex items-start gap-2">
+  1026→            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+  1027→            <div>
+  1028→              <p className="font-medium">Failed to load episodes</p>
+  1029→              <p className="text-xs mt-0.5 opacity-80">
+  1030→                Check your connection and try again.
+  1031→              </p>
+  1032→            </div>
+  1033→          </div>
+  1034→        )}
+  1035→
+  1036→        {/* Loading Skeleton */}
+  1037→        {isLoading && <EpisodeTableSkeleton />}
+  1038→
+  1039→        {/* Empty State */}
+  1040→        {!isLoading && !isError && !hasEpisodes && (
+  1041→          <Card className="bg-cinema-surface border-cinema-border">
+  1042→            <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
+  1043→              <div className="w-16 h-16 rounded-full bg-cinema-elevated flex items-center justify-center">
+  1044→                <ListVideo className="w-7 h-7 text-muted-foreground/40" />
+  1045→              </div>
+  1046→              <div className="text-center">
+  1047→                <p className="text-sm text-foreground font-medium">
+  1048→                  No episodes yet
+  1049→                </p>
+  1050→                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+  1051→                  Add your first episode to start building the content. Each
+  1052→                  episode requires an external video URL (HLS or MP4).
+  1053→                </p>
+  1054→              </div>
+  1055→              <Button
+  1056→                onClick={handleOpenAdd}
+  1057→                className="bg-cinema-red hover:bg-cinema-red-hover text-white text-sm mt-2"
+  1058→              >
+  1059→                <Plus className="w-4 h-4 mr-1.5" />
+  1060→                Add First Episode
+  1061→              </Button>
+  1062→            </CardContent>
+  1063→          </Card>
+  1064→        )}
+  1065→
+  1066→        {/* Episode Table */}
+  1067→        {!isLoading && hasEpisodes && (
+  1068→          <Card className="bg-cinema-surface border-cinema-border">
+  1069→            <CardContent className="p-0">
+  1070→              <Table>
+  1071→                <TableHeader>
+  1072→                  <TableRow className="border-cinema-border hover:bg-transparent">
+  1073→                    <TableHead className="text-xs text-muted-foreground w-16 text-center">
+  1074→                      #
+  1075→                    </TableHead>
+  1076→                    <TableHead className="text-xs text-muted-foreground w-14">
+  1077→                      Thumb
+  1078→                    </TableHead>
+  1079→                    <TableHead className="text-xs text-muted-foreground">
+  1080→                      Title
+  1081→                    </TableHead>
+  1082→                    <TableHead className="text-xs text-muted-foreground">
+  1083→                      Video Source
+  1084→                    </TableHead>
+  1085→                    <TableHead className="text-xs text-muted-foreground w-16 text-center">
+  1086→                      Runtime
+  1087→                    </TableHead>
+  1088→                    <TableHead className="text-xs text-muted-foreground w-28">
+  1089→                      Status
+  1090→                    </TableHead>
+  1091→                    <TableHead className="text-xs text-muted-foreground w-48">
+  1092→                      Paywall
+  1093→                    </TableHead>
+  1094→                    <TableHead className="text-xs text-muted-foreground w-20 text-right">
+  1095→                      Actions
+  1096→                    </TableHead>
+  1097→                  </TableRow>
+  1098→                </TableHeader>
+  1099→                <TableBody>
+  1100→                  {episodes.map((episode) => (
+  1101→                    <EpisodeRow
+  1102→                      key={episode.id}
+  1103→                      episode={episode}
+  1104→                      isUpdatingLock={updatingLockId === episode.id}
+  1105→                      onToggleLock={(val) =>
+  1106→                        handleToggleLock(episode, val)
+  1107→                      }
+  1108→                      onToggleFreeTrial={(val) =>
+  1109→                        handleToggleFreeTrial(episode, val)
+  1110→                      }
+  1111→                      onEdit={() => handleOpenEdit(episode)}
+  1112→                      onDelete={() => setDeletingEpisode(episode)}
+  1113→                    />
+  1114→                  ))}
+  1115→                </TableBody>
+  1116→              </Table>
+  1117→            </CardContent>
+  1118→          </Card>
+  1119→        )}
+  1120→      </div>
+  1121→
+  1122→      {/* Add / Edit Dialog */}
+  1123→      <EpisodeFormDialog
+  1124→        open={dialogOpen}
+  1125→        onOpenChange={setDialogOpen}
+  1126→        episode={editingEpisode}
+  1127→        contentId={contentId}
+  1128→        isSaving={saveMutation.isPending}
+  1129→        onSave={handleSave}
+  1130→      />
+  1131→
+  1132→      {/* Delete Confirmation */}
+  1133→      <AlertDialog
+  1134→        open={!!deletingEpisode}
+  1135→        onOpenChange={(open) => !open && setDeletingEpisode(null)}
+  1136→      >
+  1137→        <AlertDialogContent className="bg-cinema-surface border-cinema-border">
+  1138→          <AlertDialogHeader>
+  1139→            <AlertDialogTitle className="text-foreground">
+  1140→              Delete Episode {deletingEpisode?.episode_number}?
+  1141→            </AlertDialogTitle>
+  1142→            <AlertDialogDescription className="text-muted-foreground">
+  1143→              This will permanently remove{" "}
+  1144→              <span className="text-foreground font-medium">
+  1145→                {deletingEpisode?.title ||
+  1146→                  `Episode ${deletingEpisode?.episode_number}`}
+  1147→              </span>{" "}
+  1148→              from this content. This action cannot be undone.
+  1149→            </AlertDialogDescription>
+  1150→          </AlertDialogHeader>
+  1151→          <AlertDialogFooter>
+  1152→            <AlertDialogCancel
+  1153→              className="border-cinema-border text-sm"
+  1154→              onClick={() => setDeletingEpisode(null)}
+  1155→            >
+  1156→              Cancel
+  1157→            </AlertDialogCancel>
+  1158→            <AlertDialogAction
+  1159→              className="bg-destructive hover:bg-destructive/90 text-white text-sm"
+  1160→              onClick={() => {
+  1161→                if (deletingEpisode) {
+  1162→                  deleteMutation.mutate(deletingEpisode.id);
+  1163→                }
+  1164→              }}
+  1165→              disabled={deleteMutation.isPending}
+  1166→            >
+  1167→              {deleteMutation.isPending && (
+  1168→                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+  1169→              )}
+  1170→              Delete
+  1171→            </AlertDialogAction>
+  1172→          </AlertDialogFooter>
+  1173→        </AlertDialogContent>
+  1174→      </AlertDialog>
+  1175→    </>
+  1176→  );
+  1177→}

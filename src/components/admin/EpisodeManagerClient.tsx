@@ -53,13 +53,53 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import {
-  getEpisodes,
-  createEpisode,
-  updateEpisode,
-  deleteEpisode,
-  updateEpisodeLock,
-  bulkUpdateEpisodeLocks,
-} from "@/lib/admin/content-actions";
+// Fetch-based API helpers — no server actions
+async function apiGetEpisodes(contentId: string) {
+  const res = await fetch(`/api/admin/episodes?contentId=${contentId}`);
+  if (!res.ok) throw new Error("Failed to fetch episodes");
+  return res.json();
+}
+
+async function apiCreateEpisode(contentId: string, data: Record<string, unknown>) {
+  const res = await fetch("/api/admin/episodes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contentId, ...data }),
+  });
+  return res.json();
+}
+
+async function apiUpdateEpisode(episodeId: string, data: Record<string, unknown>) {
+  const res = await fetch(`/api/admin/episodes/${episodeId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+async function apiDeleteEpisode(episodeId: string) {
+  const res = await fetch(`/api/admin/episodes/${episodeId}`, { method: "DELETE" });
+  return res.json();
+}
+
+async function apiToggleLock(episodeId: string, updates: { is_locked?: boolean; is_free_trial?: boolean }) {
+  const res = await fetch("/api/admin/episodes/bulk", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ episodeId, ...updates }),
+  });
+  return res.json();
+}
+
+async function apiBulkUpdate(contentId: string, updates: { is_locked?: boolean; is_free_trial?: boolean }, episodeIds?: string[]) {
+  const res = await fetch("/api/admin/episodes/bulk", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contentId, episodeIds, ...updates }),
+  });
+  return res.json();
+}
 import type { Episode, ContentType } from "@/lib/supabase/types";
 import {
   Plus,
@@ -732,7 +772,7 @@ export function EpisodeManagerClient({
   } = useQuery({
     queryKey: QUERY_KEY(contentId),
     queryFn: async () => {
-      const result = await getEpisodes(contentId);
+      const result = await apiGetEpisodes(contentId);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
@@ -744,10 +784,10 @@ export function EpisodeManagerClient({
   const saveMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
       if (editingEpisode) {
-        const result = await updateEpisode(editingEpisode.id, data);
+        const result = await apiUpdateEpisode(editingEpisode.id, data);
         if (!result.success) throw new Error(result.error ?? "Update failed");
       } else {
-        const result = await createEpisode(contentId, data);
+        const result = await apiCreateEpisode(contentId, data);
         if (!result.success) throw new Error(result.error ?? "Create failed");
       }
     },
@@ -774,7 +814,7 @@ export function EpisodeManagerClient({
   // ---- Mutation: Delete episode ----
   const deleteMutation = useMutation({
     mutationFn: async (episodeId: string) => {
-      const result = await deleteEpisode(episodeId);
+      const result = await apiDeleteEpisode(episodeId);
       if (!result.success) throw new Error(result.error ?? "Delete failed");
     },
     onSuccess: () => {
@@ -803,7 +843,7 @@ export function EpisodeManagerClient({
       episodeId: string;
       updates: { is_locked?: boolean; is_free_trial?: boolean };
     }) => {
-      const result = await updateEpisodeLock(episodeId, updates);
+      const result = await apiToggleLock(episodeId, updates);
       if (!result.success) throw new Error(result.error ?? "Toggle failed");
     },
     onSuccess: () => {
@@ -827,7 +867,7 @@ export function EpisodeManagerClient({
       is_free_trial?: boolean;
       episodeIds?: string[];
     }) => {
-      const result = await bulkUpdateEpisodeLocks(contentId, updates);
+      const result = await apiBulkUpdate(contentId, updates);
       if (!result.success) throw new Error(result.error ?? "Bulk update failed");
       return result.updated;
     },

@@ -1,11 +1,11 @@
-"use server";
-
 /**
- * Admin Server Actions — API Configuration
+ * Admin API Config — Shared Logic
  *
  * All mutations for the API provider/credentials system.
  * Credentials are encrypted with AES-256-GCM before storage
  * and decrypted only when needed (test connection, proxy calls).
+ *
+ * Called by API route handlers (NOT server actions).
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";

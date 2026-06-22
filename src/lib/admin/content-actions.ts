@@ -1,10 +1,10 @@
-"use server";
-
 /**
- * Admin Server Actions — Content Management
+ * Admin Content — Shared Logic
  *
  * CRUD operations for the `contents` table, TMDB imports,
  * and the episode locking system.
+ *
+ * Called by API route handlers (NOT server actions).
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";

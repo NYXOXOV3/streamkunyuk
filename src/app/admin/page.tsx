@@ -2,7 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { getDashboardStats } from "@/lib/admin/content-actions";
+// Fetch-based, no server actions
+async function fetchDashboardStats() {
+  const res = await fetch("/api/admin/stats");
+  if (!res.ok) throw new Error("Failed to fetch stats");
+  return res.json();
+}
 import {
   Card,
   CardContent,
@@ -41,7 +46,7 @@ function StatCard({
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-dashboard-stats"],
-    queryFn: getDashboardStats,
+    queryFn: fetchDashboardStats,
     refetchInterval: 30000,
   });
 

@@ -17,7 +17,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { createContent } from "@/lib/admin/content-actions";
+// Fetch-based, no server actions
+async function apiCreateContent(formData: Record<string, unknown>) {
+  const res = await fetch("/api/admin/content", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData),
+  });
+  return res.json();
+}
 import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -50,7 +58,7 @@ export default function NewContentPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      const result = await createContent({
+      const result = await apiCreateContent({
         ...form,
         release_year: form.release_year ? parseInt(form.release_year) : undefined,
         runtime_minutes: form.runtime_minutes ? parseInt(form.runtime_minutes) : undefined,

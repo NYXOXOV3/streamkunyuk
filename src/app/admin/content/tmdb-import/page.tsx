@@ -15,7 +15,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { searchTmdbContent, importFromTmdb } from "@/lib/admin/content-actions";
+// Fetch-based, no server actions
+async function apiSearchTmdb(params: { query: string; type: "movie" | "tv"; page?: number }) {
+  const sp = new URLSearchParams({ q: params.query, type: params.type, page: String(params.page || 1) });
+  const res = await fetch(`/api/admin/content/search?${sp}`);
+  return res.json();
+}
+
+async function apiImportTmdb(params: { tmdbId: number; type: "movie" | "tv" }) {
+  const res = await fetch("/api/admin/content/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return res.json();
+}
 import {
   Search,
   Download,
@@ -136,9 +150,18 @@ export default function TmdbImportPage() {
   const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [type, setType] = useState<"movie" | "tv">("movie");
-  const [searchResults, setSearchResults] = useState<ReturnType<
-    typeof searchTmdbContent
-  > extends Promise<infer T> ? T["results"] : never>([]);
+  const [searchResults, setSearchResults] = useState<{
+    tmdb_id: number;
+    title: string;
+    original_title: string | null;
+    synopsis: string | null;
+    type: "movie" | "series";
+    release_year: number | null;
+    poster_url: string | null;
+    backdrop_url: string | null;
+    rating: number;
+    rating_count: number;
+  }[]>([]);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -152,7 +175,7 @@ export default function TmdbImportPage() {
     setError(null);
     setHasSearched(true);
     startSearchTransition(async () => {
-      const result = await searchTmdbContent({ query, type, page });
+      const result = await apiSearchTmdb({ query, type, page });
       if (result.error) {
         setError(result.error);
         setSearchResults([]);
@@ -167,7 +190,7 @@ export default function TmdbImportPage() {
 
   async function handleImport(tmdbId: number) {
     setImportingId(tmdbId);
-    const result = await importFromTmdb({ tmdbId, type });
+    const result = await apiImportTmdb({ tmdbId, type });
     if (result.success) {
       toast({
         title: "Imported!",
