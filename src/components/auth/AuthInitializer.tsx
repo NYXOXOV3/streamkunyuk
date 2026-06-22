@@ -1,143 +1,89 @@
 "use client";
 
 /**
- * Auth initializer component.
+ * Auth Initializer
  *
- * Fetches the current session and profile on mount, then syncs
- * into the Zustand auth store. Place this inside the root layout
- * so it runs exactly once per app load.
- *
- * Gracefully handles missing Supabase configuration.
+ * Fetches session on mount, syncs into Zustand auth store.
+ * Listens for auth state changes (login, logout, token refresh).
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { Profile, Subscription } from "@/lib/supabase/types";
 
-const isSupabaseConfigured =
-  typeof window !== "undefined" &&
-  !window.location.hostname.includes("placeholder");
-
 export function AuthInitializer() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const setLoading = useAuthStore((s) => s.setLoading);
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      // Dev mode: no Supabase — mark as unauthenticated
-      setAuth({
-        userId: null,
-        email: null,
-        profile: null,
-        subscription: null,
-      });
-      return;
-    }
-
     let mounted = true;
 
-    async function init() {
+    async function loadSession() {
       try {
-        const supabase = createClient();
-
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
         if (!session?.user || !mounted) {
-          setAuth({
-            userId: null,
-            email: null,
-            profile: null,
-            subscription: null,
-          });
+          setAuth({ userId: null, email: null, profile: null, subscription: null });
           return;
         }
 
-        const userId = session.user.id;
-        const email = session.user.email;
+        await fetchProfile(session.user.id, session.user.email!);
+      } catch {
+        setAuth({ userId: null, email: null, profile: null, subscription: null });
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
 
-        // Fetch profile and subscription in parallel
+    async function fetchProfile(userId: string, email: string) {
+      try {
         const [profileRes, subRes] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", userId)
-            .single(),
-          supabase
-            .from("subscriptions")
-            .select("*, subscription_tier(*)")
-            .eq("user_id", userId)
-            .single(),
+          supabase.from("profiles").select("*").eq("id", userId).single(),
+          supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).single(),
         ]);
 
-        const profile: Profile | null = profileRes.data ?? null;
-        const subscription: Subscription | null = subRes.data ?? null;
-
         if (mounted) {
-          setAuth({ userId, email, profile, subscription });
+          setAuth({
+            userId,
+            email,
+            profile: (profileRes.data as Profile) ?? null,
+            subscription: (subRes.data as Subscription) ?? null,
+          });
         }
       } catch {
         if (mounted) {
-          setAuth({
-            userId: null,
-            email: null,
-            profile: null,
-            subscription: null,
-          });
+          setAuth({ userId, email, profile: null, subscription: null });
         }
       }
     }
 
     setLoading(true);
-    init();
+    loadSession();
 
     // Listen for auth state changes
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!session?.user || !mounted) {
-        setAuth({
-          userId: null,
-          email: null,
-          profile: null,
-          subscription: null,
-        });
-        return;
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
 
-      const userId = session.user.id;
-      const email = session.user.email;
+        if (!session?.user) {
+          setAuth({ userId: null, email: null, profile: null, subscription: null });
+          return;
+        }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("*, subscription_tier(*)")
-        .eq("user_id", userId)
-        .single();
-
-      if (mounted) {
-        setAuth({
-          userId,
-          email,
-          profile: profile ?? null,
-          subscription: sub ?? null,
-        });
-      }
-    });
+        await fetchProfile(session.user.id, session.user.email!);
+      },
+    );
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [setAuth, setLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 }
