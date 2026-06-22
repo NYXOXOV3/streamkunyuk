@@ -31,9 +31,18 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsSubmitting(true);
     setServerError(null);
+
+    const formEl = e.currentTarget;
+    const email = (formEl.elements.namedItem("email") as HTMLInputElement)?.value;
+    const password = (formEl.elements.namedItem("password") as HTMLInputElement)?.value;
+
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
 
     const result = await signIn(formData);
 
@@ -82,7 +91,7 @@ export function LoginForm() {
         )}
 
         {/* Email/Password form */}
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-foreground text-sm">
               Email
@@ -160,7 +169,8 @@ export function LoginForm() {
         </div>
 
         {/* Google OAuth */}
-        <form action={async () => {
+        <form onSubmit={async (e) => {
+          e.preventDefault();
           const { signInWithGoogle } = await import("@/lib/auth/actions");
           const result = await signInWithGoogle();
           if (result.url) {

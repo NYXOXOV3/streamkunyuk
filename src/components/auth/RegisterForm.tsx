@@ -33,13 +33,17 @@ export function RegisterForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsSubmitting(true);
     setServerError(null);
     setSuccessMessage(null);
 
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
+    const formEl = e.currentTarget;
+    const password = (formEl.elements.namedItem("password") as HTMLInputElement)?.value;
+    const confirmPassword = (formEl.elements.namedItem("confirmPassword") as HTMLInputElement)?.value;
+    const email = (formEl.elements.namedItem("email") as HTMLInputElement)?.value;
+    const displayName = (formEl.elements.namedItem("displayName") as HTMLInputElement)?.value;
 
     if (password !== confirmPassword) {
       setServerError("Passwords do not match.");
@@ -53,8 +57,10 @@ export function RegisterForm() {
       return;
     }
 
-    // Remove confirmPassword before sending to server action
-    formData.delete("confirmPassword");
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
+    formData.append("displayName", displayName);
 
     const result = await signUp(formData);
 
@@ -136,7 +142,7 @@ export function RegisterForm() {
           </div>
         )}
 
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="displayName" className="text-foreground text-sm">
               Display Name
@@ -244,7 +250,8 @@ export function RegisterForm() {
           </span>
         </div>
 
-        <form action={async () => {
+        <form onSubmit={async (e) => {
+          e.preventDefault();
           const { signInWithGoogle } = await import("@/lib/auth/actions");
           const result = await signInWithGoogle();
           if (result.url) {
