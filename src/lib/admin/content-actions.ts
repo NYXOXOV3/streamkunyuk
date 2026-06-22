@@ -8,7 +8,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { manualContentSchema, episodeSchema } from "@/lib/validations/adminSchemas";
+import { manualContentSchema, episodeSchema, updateEpisodeSchema } from "@/lib/validations/adminSchemas";
 import { searchTmdb, getTmdbDetail, parseTmdbToContentType } from "@/lib/api/tmdb";
 import type { Content, ContentType, ContentStatus } from "@/lib/supabase/types";
 
@@ -296,6 +296,12 @@ export async function createEpisode(
     const supabase = await createAdminClient();
     const d = parsed.data;
 
+    // Convert simple subtitle_url string to the DB's subtitles_url JSONB format
+    const subtitlesUrl =
+      d.subtitle_url && d.subtitle_url.trim() !== ""
+        ? [{ lang: "en", url: d.subtitle_url.trim() }]
+        : null;
+
     const { error } = await supabase.from("episodes").insert({
       content_id: contentId,
       episode_number: d.episode_number,
@@ -304,6 +310,7 @@ export async function createEpisode(
       thumbnail_url: d.thumbnail_url || null,
       video_url: d.video_url,
       video_url_backup: d.video_url_backup || null,
+      subtitles_url: subtitlesUrl,
       is_locked: d.is_locked,
       is_free_trial: d.is_free_trial,
     });
@@ -356,6 +363,81 @@ export async function bulkUpdateEpisodeLocks(
     return { success: true, updated: count ?? 0, error: null };
   } catch (e) {
     return { success: false, updated: 0, error: (e as Error).message };
+  }
+}
+
+export async function updateEpisode(
+  episodeId: string,
+  formData: Record<string, unknown>,
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const parsed = updateEpisodeSchema.safeParse(formData);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
+    }
+
+    const supabase = await createAdminClient();
+    const d = parsed.data;
+
+    // Convert simple subtitle_url string to the DB's subtitles_url JSONB format
+    const subtitlesUrl =
+      d.subtitle_url !== undefined
+        ? d.subtitle_url && d.subtitle_url.trim() !== ""
+          ? [{ lang: "en", url: d.subtitle_url.trim() }]
+          : null
+        : undefined; // undefined = don't update this field
+
+    const updates: Record<string, unknown> = { ...d };
+    if (subtitlesUrl !== undefined) {
+      updates.subtitles_url = subtitlesUrl;
+    }
+    // Remove subtitle_url from the payload — it's not a real DB column
+    delete updates.subtitle_url;
+
+    const { error } = await supabase
+      .from("episodes")
+      .update(updates)
+      .eq("id", episodeId);
+
+    if (error) throw error;
+    return { success: true, error: null };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function deleteEpisode(
+  episodeId: string,
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createAdminClient();
+    const { error } = await supabase
+      .from("episodes")
+      .delete()
+      .eq("id", episodeId);
+
+    if (error) throw error;
+    return { success: true, error: null };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function getContentById(
+  contentId: string,
+): Promise<{ data: Pick<Content, "id" | "title" | "type"> | null; error: string | null }> {
+  try {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase
+      .from("contents")
+      .select("id, title, type")
+      .eq("id", contentId)
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: (e as Error).message };
   }
 }
 

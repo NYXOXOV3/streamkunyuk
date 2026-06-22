@@ -103,11 +103,21 @@ export const episodeSchema = z.object({
     .url("Must be a valid URL")
     .optional()
     .or(z.literal("")),
+  subtitle_url: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .or(z.literal("")),
   is_locked: z.boolean().default(false),
   is_free_trial: z.boolean().default(false),
 });
 
 export type EpisodeFormValues = z.infer<typeof episodeSchema>;
+
+/** Partial version for editing — all fields optional */
+export const updateEpisodeSchema = episodeSchema.partial();
+
+export type UpdateEpisodeFormValues = z.infer<typeof updateEpisodeSchema>;
 
 // ---------------------------------------------------------------------------
 // TMDB Search Schema

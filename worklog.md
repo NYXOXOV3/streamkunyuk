@@ -91,3 +91,24 @@ Stage Summary:
 - Server Actions handle all mutations; React Query for data fetching
 - Episode Manager with locking system built (server actions ready), UI page deferred per user request
 - Ready for Episode Manager UI verification when user is ready
+
+---
+Task ID: 2.6
+Agent: Super Z (Main)
+Task: Phase 2 Step 2.6 — Episode Manager UI with locking system, bulk actions, and external URL video input
+
+Work Log:
+- Updated `src/lib/validations/adminSchemas.ts`: added `subtitle_url` field to episodeSchema, created `updateEpisodeSchema` (partial version for editing)
+- Updated `src/lib/admin/content-actions.ts`: added `subtitle_url` → `subtitles_url` JSONB conversion in createEpisode, added `updateEpisode` server action (with updateEpisodeSchema validation + subtitle conversion), added `deleteEpisode` server action, added `getContentById` server action (for reuse)
+- Created `src/components/admin/EpisodeManagerClient.tsx`: Full client component with React Query (useQuery + 5 useMutation hooks), episode table with inline Switch toggles for is_locked/is_free_trial, bulk actions toolbar (Unlock All / Lock All / Set First 3 Free Trial), Add/Edit Dialog with external URL video input (NO file upload), subtitle URL input (.vtt/.srt), delete confirmation via AlertDialog, loading skeletons, empty state, error state, cinema-dark theme throughout
+- Created `src/app/admin/content/[id]/episodes/page.tsx`: Server Component that fetches content info via admin client, renders EpisodeManagerClient, includes content-not-found and error fallbacks
+- Verified: `next build` compiles cleanly with zero errors, new route registered as dynamic (ƒ)
+
+Stage Summary:
+- Episode Manager fully built: table, toggles, bulk actions, add/edit dialog, delete confirmation
+- 2 existing files modified (adminSchemas.ts, content-actions.ts), 2 new files created
+- Server actions: getEpisodes, createEpisode, updateEpisode, deleteEpisode, updateEpisodeLock, bulkUpdateEpisodeLocks, getContentById
+- Video input is external URL only (HLS .m3u8 or MP4) with helper text, no file upload
+- Subtitle URL stored as JSONB `[{lang: "en", url: "..."}]` in subtitles_url column
+- React Query pattern: 2min staleTime, auto-invalidate on mutations, toast notifications
+- Phase 2 Step 2.6 complete
