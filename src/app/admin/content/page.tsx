@@ -24,7 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { createClient } from "@/lib/supabase/client";
 import type { Content, ContentType } from "@/lib/supabase/types";
 import {
   Plus,
@@ -52,19 +51,14 @@ export default function ContentListPage() {
   const { data: contents = [], isLoading, error } = useQuery({
     queryKey: ["admin-content-list", typeFilter, statusFilter, search],
     queryFn: async () => {
-      const supabase = createClient();
-      let query = supabase
-        .from("contents")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (typeFilter !== "all") query = query.eq("type", typeFilter);
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
-      if (search) query = query.ilike("title", `%${search}%`);
-
-      const { data, error: err } = await query;
-      if (err) throw err;
-      return (data ?? []) as Content[];
+      const sp = new URLSearchParams();
+      if (typeFilter !== "all") sp.set("type", typeFilter);
+      if (statusFilter !== "all") sp.set("status", statusFilter);
+      if (search) sp.set("search", search);
+      const res = await fetch(`/api/admin/content?${sp}`);
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      return (json.data ?? []) as Content[];
     },
     staleTime: 1000 * 60 * 2,
   });
