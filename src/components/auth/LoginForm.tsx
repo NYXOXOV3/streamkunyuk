@@ -54,8 +54,8 @@ export function LoginForm() {
     }
 
     toast({ title: "Welcome back!", description: "You are now signed in." });
-    // Full page reload so middleware picks up auth cookies
-    window.location.href = "/admin";
+    // Full reload so AuthInitializer re-fetches session + profile
+    window.location.href = "/";
   }
 
   async function handleGoogleSignIn() {

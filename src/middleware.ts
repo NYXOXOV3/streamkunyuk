@@ -1,65 +1,24 @@
-import { createMiddlewareClient } from "@/lib/supabase/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Routes that require authentication
-const PROTECTED_PATHS = ["/profile", "/watch", "/my-list", "/history"];
-
+/**
+ * StreamVault Middleware
+ *
+ * Auth protection is handled client-side via AuthGuard / AdminGuard.
+ * The middleware only handles:
+ * 1. Supabase placeholder bypass (dev mode)
+ * 2. Redirecting authenticated users away from auth pages
+ */
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
   // If Supabase is not configured, pass through (development mode)
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")) {
     return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({ request });
-
-  try {
-    const { supabase, response } = await createMiddlewareClient(request);
-    supabaseResponse = response;
-
-    // Refresh the session
-    const { data: { user } } = await supabase.auth.getUser();
-    const { pathname } = request.nextUrl;
-
-    // Protected routes: require auth
-    const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
-
-    if (isProtected && !user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(url);
-    }
-
-    // Admin routes: require auth + is_admin
-    if (pathname.startsWith("/admin")) {
-      if (!user) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/login";
-        url.searchParams.set("redirect", pathname);
-        return NextResponse.redirect(url);
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.is_admin) {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
-    }
-
-    // Redirect authenticated users away from auth pages
-    if ((pathname === "/login" || pathname === "/register") && user) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-
-    return supabaseResponse;
-  } catch {
-    // If Supabase is unreachable, pass through
-    return supabaseResponse;
-  }
+  // Let client-side guards (AuthGuard, AdminGuard) handle all auth
+  // This avoids cookie-sync issues between browser client and middleware
+  return NextResponse.next();
 }
 
 export const config = {
