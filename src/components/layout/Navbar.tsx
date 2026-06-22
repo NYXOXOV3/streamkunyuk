@@ -84,7 +84,10 @@ export function Navbar() {
         <div className="flex items-center gap-2 ml-auto">
           {/* Search trigger */}
           <button
-            onClick={openSearch}
+            onClick={() => {
+              openSearch();
+              router.push("/search");
+            }}
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Search"
           >

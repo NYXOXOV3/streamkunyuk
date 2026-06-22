@@ -33,6 +33,7 @@ import {
   Unlock,
   ListVideo,
   Loader2,
+  Pencil,
 } from "lucide-react";
 
 const TYPE_COLORS: Record<ContentType, string> = {
@@ -205,12 +206,20 @@ export default function ContentListPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs h-7">
-                          <Link href={`/admin/content/${item.id}/episodes`}>
-                            <ListVideo className="w-3.5 h-3.5 mr-1" />
-                            Episodes
-                          </Link>
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs h-7">
+                            <Link href={`/admin/content/${item.id}/edit`}>
+                              <Pencil className="w-3.5 h-3.5 mr-1" />
+                              Edit
+                            </Link>
+                          </Button>
+                          <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs h-7">
+                            <Link href={`/admin/content/${item.id}/episodes`}>
+                              <ListVideo className="w-3.5 h-3.5 mr-1" />
+                              Episodes
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

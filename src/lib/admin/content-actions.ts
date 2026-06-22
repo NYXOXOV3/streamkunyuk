@@ -246,9 +246,18 @@ export async function updateContent(
     free_trial_episodes?: number;
     featured?: boolean;
     title?: string;
+    original_title?: string;
     synopsis?: string;
+    type?: ContentType;
+    release_year?: number;
+    runtime_minutes?: number;
+    poster_url?: string;
+    backdrop_url?: string;
+    trailer_url?: string;
+    language?: string;
+    country_of_origin?: string;
   },
-): Promise<{ success: boolean; error: string | null }> {
+): Promise<{ success: boolean; error: string | null }>{
   try {
     const supabase = await createAdminClient();
     const { error } = await supabase
@@ -428,12 +437,12 @@ export async function deleteEpisode(
 
 export async function getContentById(
   contentId: string,
-): Promise<{ data: Pick<Content, "id" | "title" | "type"> | null; error: string | null }> {
+): Promise<{ data: Content | null; error: string | null }> {
   try {
     const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("contents")
-      .select("id, title, type")
+      .select("*")
       .eq("id", contentId)
       .single();
 
@@ -454,7 +463,9 @@ export async function getDashboardStats(): Promise<{
   totalContent: number;
   totalWatchHours: number;
   contentByType: { type: string; count: number }[];
-  recentImports: { id: string; title: string; type: string; created_at: string }[];
+  recentImports: { id: string; title: string; type: string; status: string; created_at: string }[];
+  contentByStatus: { status: string; count: number }[];
+  subscriptionsByStatus: { status: string; count: number }[];
 }> {
   try {
     const supabase = await createAdminClient();
@@ -487,10 +498,38 @@ export async function getDashboardStats(): Promise<{
       {} as Record<string, number>,
     );
 
+    // Content by status
+    const { data: statusBreakdown } = await supabase
+      .from("contents")
+      .select("status");
+
+    const contentByStatusMap = (statusBreakdown ?? []).reduce(
+      (acc, item) => {
+        const s = item.status;
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    // Subscriptions by status
+    const { data: subStatusBreakdown } = await supabase
+      .from("subscriptions")
+      .select("status");
+
+    const subscriptionsByStatusMap = (subStatusBreakdown ?? []).reduce(
+      (acc, item) => {
+        const s = item.status;
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
     // Recent imports
     const { data: recentImports } = await supabase
       .from("contents")
-      .select("id, title, type, created_at")
+      .select("id, title, type, status, created_at")
       .order("created_at", { ascending: false })
       .limit(5);
 
@@ -504,6 +543,14 @@ export async function getDashboardStats(): Promise<{
         count,
       })),
       recentImports: recentImports ?? [],
+      contentByStatus: Object.entries(contentByStatusMap).map(([status, count]) => ({
+        status,
+        count,
+      })),
+      subscriptionsByStatus: Object.entries(subscriptionsByStatusMap).map(([status, count]) => ({
+        status,
+        count,
+      })),
     };
   } catch {
     // Return mock data if Supabase is not connected
@@ -520,6 +567,18 @@ export async function getDashboardStats(): Promise<{
         { type: "microdrama", count: 33 },
       ],
       recentImports: [],
+      contentByStatus: [
+        { status: "published", count: 98 },
+        { status: "draft", count: 42 },
+        { status: "archived", count: 16 },
+      ],
+      subscriptionsByStatus: [
+        { status: "active", count: 384 },
+        { status: "trialing", count: 52 },
+        { status: "inactive", count: 128 },
+        { status: "cancelled", count: 74 },
+        { status: "past_due", count: 23 },
+      ],
     };
   }
 }
