@@ -143,30 +143,33 @@ export async function importFromTmdb(params: {
       .eq("name", "TMDB Import")
       .single();
 
-    // Upsert (by tmdb_id + type to avoid duplicates)
+    // Delete existing TMDB entry with same tmdb_id, then insert fresh
+    // (table lacks unique constraint on tmdb_id, so upsert fails)
+    await supabase
+      .from("contents")
+      .delete()
+      .eq("tmdb_id", parsed.tmdb_id);
+
     const { data, error } = await supabase
       .from("contents")
-      .upsert(
-        {
-          tmdb_id: parsed.tmdb_id,
-          title: parsed.title,
-          original_title: parsed.original_title,
-          synopsis: parsed.synopsis,
-          type: parsed.type,
-          release_year: parsed.release_year,
-          poster_url: parsed.poster_url,
-          backdrop_url: parsed.backdrop_url,
-          rating: parsed.rating,
-          rating_count: parsed.rating_count,
-          status: "draft",
-          provider_source_id: provider?.id || null,
-          slug: parsed.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, ""),
-        },
-        { onConflict: "tmdb_id" },
-      )
+      .insert({
+        tmdb_id: parsed.tmdb_id,
+        title: parsed.title,
+        original_title: parsed.original_title,
+        synopsis: parsed.synopsis,
+        type: parsed.type,
+        release_year: parsed.release_year,
+        poster_url: parsed.poster_url,
+        backdrop_url: parsed.backdrop_url,
+        rating: parsed.rating,
+        rating_count: parsed.rating_count,
+        status: "draft",
+        provider_source_id: provider?.id || null,
+        slug: parsed.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, ""),
+      })
       .select()
       .single();
 
