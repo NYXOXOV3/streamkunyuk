@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,31 +24,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { updateContent } from "@/lib/admin/content-actions";
-import type { ContentType, ContentStatus } from "@/lib/supabase/types";
+import { createClient } from "@/lib/supabase/client";
+import type { Content, ContentType } from "@/lib/supabase/types";
 import {
   Plus,
   Search,
   Download,
-  Eye,
   Lock,
   Unlock,
   ListVideo,
   Loader2,
 } from "lucide-react";
-
-// ---------------------------------------------------------------------------
-// Mock data fallback (when Supabase is not connected)
-// ---------------------------------------------------------------------------
-
-const MOCK_CONTENT = [
-  { id: "1", title: "Attack on Titan", type: "anime" as ContentType, status: "published" as ContentStatus, is_premium_only: false, rating: 9.0, created_at: "2024-01-15" },
-  { id: "2", title: "The Last Kingdom", type: "series" as ContentType, status: "published" as ContentStatus, is_premium_only: true, rating: 8.2, created_at: "2024-02-20" },
-  { id: "3", title: "Sword Art Online", type: "anime" as ContentType, status: "draft" as ContentStatus, is_premium_only: false, rating: 7.5, created_at: "2024-03-10" },
-  { id: "4", title: "The Grandmaster", type: "movie" as ContentType, status: "published" as ContentStatus, is_premium_only: false, rating: 7.8, created_at: "2024-04-05" },
-  { id: "5", title: "CEO's Secret Wife", type: "microdrama" as ContentType, status: "published" as ContentStatus, is_premium_only: true, rating: 6.5, created_at: "2024-05-12" },
-];
 
 const TYPE_COLORS: Record<ContentType, string> = {
   movie: "bg-blue-500/20 text-blue-300 border-blue-500/30",
@@ -58,42 +45,29 @@ const TYPE_COLORS: Record<ContentType, string> = {
 };
 
 export default function ContentListPage() {
-  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [isTogglingLock, startToggleTransition] = useTransition();
-  const [data, setData] = useState(MOCK_CONTENT);
-  const [isLoading] = useState(false);
 
-  // Filter client-side (in production, this would be a React Query fetch)
-  const filtered = data.filter((item) => {
-    if (search && !item.title.toLowerCase().includes(search.toLowerCase()))
-      return false;
-    if (typeFilter !== "all" && item.type !== typeFilter) return false;
-    if (statusFilter !== "all" && item.status !== statusFilter) return false;
-    return true;
+  const { data: contents = [], isLoading, error } = useQuery({
+    queryKey: ["admin-content-list", typeFilter, statusFilter, search],
+    queryFn: async () => {
+      const supabase = createClient();
+      let query = supabase
+        .from("contents")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (typeFilter !== "all") query = query.eq("type", typeFilter);
+      if (statusFilter !== "all") query = query.eq("status", statusFilter);
+      if (search) query = query.ilike("title", `%${search}%`);
+
+      const { data, error: err } = await query;
+      if (err) throw err;
+      return (data ?? []) as Content[];
+    },
+    staleTime: 1000 * 60 * 2,
   });
-
-  async function togglePremiumLock(
-    contentId: string,
-    current: boolean,
-  ) {
-    startToggleTransition(async () => {
-      // In production: await updateContent(contentId, { is_premium_only: !current });
-      setData((prev) =>
-        prev.map((c) =>
-          c.id === contentId ? { ...c, is_premium_only: !current } : c,
-        ),
-      );
-      toast({
-        title: current ? "Unlocked" : "Locked",
-        description: current
-          ? "Content is now free for all users"
-          : "Content is now subscriber-only",
-      });
-    });
-  }
 
   return (
     <>
@@ -153,6 +127,13 @@ export default function ContentListPage() {
           </div>
         </div>
 
+        {/* Error state */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
+            Failed to load content: {(error as Error).message}
+          </div>
+        )}
+
         {/* Table */}
         <Card className="bg-cinema-surface border-cinema-border">
           <CardContent className="p-0">
@@ -171,62 +152,48 @@ export default function ContentListPage() {
                 {isLoading ? (
                   [...Array(5)].map((_, i) => (
                     <TableRow key={i} className="border-cinema-border">
-                      <TableCell>
-                        <Skeleton className="h-4 w-48" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-16" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-16" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-8 mx-auto" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-8 w-20 mx-auto" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-8 w-20 ml-auto" />
-                      </TableCell>
+                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-20 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                     </TableRow>
                   ))
-                ) : filtered.length === 0 ? (
+                ) : contents.length === 0 ? (
                   <TableRow className="border-cinema-border">
                     <TableCell colSpan={6} className="text-center py-12">
-                      <p className="text-sm text-muted-foreground">
-                        No content found
-                      </p>
+                      <p className="text-sm text-muted-foreground">No content found</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-cinema-border hover:bg-accent/50"
-                    >
+                  contents.map((item) => (
+                    <TableRow key={item.id} className="border-cinema-border hover:bg-accent/50">
                       <TableCell>
-                        <p className="text-sm font-medium text-foreground">
-                          {item.title}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          {item.poster_url && (
+                            <img
+                              src={item.poster_url}
+                              alt=""
+                              className="w-8 h-12 object-cover rounded-sm bg-cinema-elevated"
+                            />
+                          )}
+                          <p className="text-sm font-medium text-foreground truncate max-w-[200px]">
+                            {item.title}
+                          </p>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] capitalize ${TYPE_COLORS[item.type]}`}
-                        >
+                        <Badge variant="outline" className={`text-[10px] capitalize ${TYPE_COLORS[item.type]}`}>
                           {item.type}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${
-                            item.status === "published"
-                              ? "border-emerald-600/50 text-emerald-400"
-                              : "border-cinema-border text-muted-foreground"
-                          }`}
-                        >
+                        <Badge variant="outline" className={`text-[10px] ${
+                          item.status === "published"
+                            ? "border-emerald-600/50 text-emerald-400"
+                            : "border-cinema-border text-muted-foreground"
+                        }`}>
                           {item.status}
                         </Badge>
                       </TableCell>
@@ -234,38 +201,17 @@ export default function ContentListPage() {
                         {item.rating}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            togglePremiumLock(item.id, item.is_premium_only)
-                          }
-                          disabled={isTogglingLock}
-                          className={`h-7 text-xs ${
-                            item.is_premium_only
-                              ? "text-cinema-gold hover:text-cinema-gold/80"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          {isTogglingLock ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : item.is_premium_only ? (
-                            <Lock className="w-3.5 h-3.5" />
-                          ) : (
-                            <Unlock className="w-3.5 h-3.5" />
-                          )}
-                          <span className="ml-1">
-                            {item.is_premium_only ? "Locked" : "Open"}
-                          </span>
-                        </Button>
+                        <span className={`inline-flex items-center gap-1 text-xs ${
+                          item.is_premium_only
+                            ? "text-cinema-gold"
+                            : "text-muted-foreground"
+                        }`}>
+                          {item.is_premium_only ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                          {item.is_premium_only ? "Premium" : "Free"}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="outline"
-                          className="border-cinema-border text-xs h-7"
-                        >
+                        <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs h-7">
                           <Link href={`/admin/content/${item.id}/episodes`}>
                             <ListVideo className="w-3.5 h-3.5 mr-1" />
                             Episodes
@@ -279,6 +225,13 @@ export default function ContentListPage() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Count */}
+        {!isLoading && (
+          <p className="text-xs text-muted-foreground text-right">
+            {contents.length} item{contents.length !== 1 ? "s" : ""}
+          </p>
+        )}
       </div>
     </>
   );
