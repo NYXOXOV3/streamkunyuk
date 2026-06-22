@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { AuthInitializer } from "@/components/auth/AuthInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,7 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StreamVault — Premium Streaming",
+  title: {
+    default: "StreamVault — Premium Streaming",
+    template: "%s — StreamVault",
+  },
   description:
     "Stream movies, series, anime, donghua, and micro-dramas. Cinematic experience, anytime, anywhere.",
   keywords: [
@@ -41,8 +46,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        <QueryProvider>
+          <AuthInitializer />
+          {children}
+          <Toaster />
+        </QueryProvider>
       </body>
     </html>
   );
