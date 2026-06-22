@@ -4,10 +4,19 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut, User } from "lucide-react";
-import { signOut } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export function AdminHeader({ title }: { title?: string }) {
   const { profile, email } = useAuthStore();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="h-14 border-b border-cinema-border bg-cinema-surface/50 flex items-center justify-between px-6 shrink-0">
@@ -35,16 +44,15 @@ export function AdminHeader({ title }: { title?: string }) {
           </p>
           <p className="text-xs text-muted-foreground">{email}</p>
         </div>
-        <form action={async () => { await signOut(); }}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="border-cinema-border text-muted-foreground hover:text-destructive hover:border-destructive"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </form>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleSignOut}
+          className="border-cinema-border text-muted-foreground hover:text-destructive hover:border-destructive"
+        >
+          <LogOut className="w-4 h-4" />
+        </Button>
       </div>
     </header>
   );

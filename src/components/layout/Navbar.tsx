@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { Button } from "@/components/ui/button";
@@ -202,7 +202,10 @@ export function Navbar() {
 
                   <DropdownMenuItem
                     onClick={async () => {
-                      await signOut();
+                      const supabase = createClient();
+                      await supabase.auth.signOut();
+                      router.push("/");
+                      router.refresh();
                     }}
                     className="text-sm text-destructive focus:bg-destructive/10 cursor-pointer"
                   >
