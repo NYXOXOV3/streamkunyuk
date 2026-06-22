@@ -126,16 +126,26 @@ export async function saveApiConfig(formData: {
     if (providerError) throw providerError;
 
     // Encrypt and save API key
+    // Use delete+insert because api_credentials lacks a unique constraint for upsert
     const encryptedApiKey = await encrypt(formData.api_key, encryptionKey);
-    await supabase.from("api_credentials").upsert(
-      {
+    await supabase
+      .from("api_credentials")
+      .delete()
+      .eq("provider_id", provider.id)
+      .eq("credential_type", "api_key");
+    // bytea columns: use PostgreSQL hex format (\x + hex bytes)
+    // Supabase JS serializes Buffer/Uint8Array as JSON, so we pass hex strings
+    const apiKeyHex = Buffer.from(encryptedApiKey.encrypted, "base64").toString("hex");
+    const apiIvHex = Buffer.from(encryptedApiKey.iv, "base64").toString("hex");
+    const { error: credError } = await supabase
+      .from("api_credentials")
+      .insert({
         provider_id: provider.id,
         credential_type: "api_key",
-        encrypted_value: Buffer.from(encryptedApiKey.encrypted, "base64"),
-        iv: Buffer.from(encryptedApiKey.iv, "base64"),
-      },
-      { onConflict: "provider_id,credential_type" },
-    );
+        encrypted_value: "\\x" + apiKeyHex,
+        iv: "\\x" + apiIvHex,
+      });
+    if (credError) throw credError;
 
     // Encrypt and save secret key (if provided)
     if (formData.secret_key?.trim()) {
@@ -143,15 +153,22 @@ export async function saveApiConfig(formData: {
         formData.secret_key,
         encryptionKey,
       );
-      await supabase.from("api_credentials").upsert(
-        {
+      await supabase
+        .from("api_credentials")
+        .delete()
+        .eq("provider_id", provider.id)
+        .eq("credential_type", "secret_key");
+      const secretHex = Buffer.from(encryptedSecret.encrypted, "base64").toString("hex");
+      const secretIvHex = Buffer.from(encryptedSecret.iv, "base64").toString("hex");
+      const { error: secretError } = await supabase
+        .from("api_credentials")
+        .insert({
           provider_id: provider.id,
           credential_type: "secret_key",
-          encrypted_value: Buffer.from(encryptedSecret.encrypted, "base64"),
-          iv: Buffer.from(encryptedSecret.iv, "base64"),
-        },
-        { onConflict: "provider_id,credential_type" },
-      );
+          encrypted_value: "\\x" + secretHex,
+          iv: "\\x" + secretIvHex,
+        });
+      if (secretError) throw secretError;
     }
 
     return { success: true, error: null };
@@ -196,10 +213,16 @@ export async function getCredential(
       };
     }
 
-    const ivBase64 = Buffer.from(cred.iv).toString("base64");
-    const encryptedBase64 = Buffer.from(cred.encrypted_value).toString(
-      "base64",
-    );
+    // Supabase JS returns bytea columns as '\\x...' hex strings
+    // Strip the 2-char prefix and convert hex back to base64 for decryption
+    const ivBase64 = Buffer.from(
+      String(cred.iv).substring(2),
+      "hex",
+    ).toString("base64");
+    const encryptedBase64 = Buffer.from(
+      String(cred.encrypted_value).substring(2),
+      "hex",
+    ).toString("base64");
 
     const value = await decrypt(encryptedBase64, ivBase64, encryptionKey);
     return { value, error: null };
