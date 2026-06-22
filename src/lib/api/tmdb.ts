@@ -65,12 +65,21 @@ export async function searchTmdb(
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("language", "en-US");
 
+  // TMDB supports two auth methods:
+  //   v3 API Key (32-char hex) → ?api_key=xxx
+  //   v4 Bearer Token (JWT)     → Authorization: Bearer xxx
+  // Auto-detect by key format
+  const isV3Key = /^[a-f0-9]{32}$/i.test(apiKey.trim());
+  if (isV3Key) {
+    url.searchParams.set("api_key", apiKey.trim());
+  }
+
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      ...(isV3Key ? {} : { Authorization: `Bearer ${apiKey.trim()}` }),
       "Content-Type": "application/json",
     },
-    next: { revalidate: 300 }, // Cache for 5 min
+    next: { revalidate: 300 },
   });
 
   if (!res.ok) {
@@ -93,9 +102,14 @@ export async function getTmdbDetail(
   const url = new URL(`${baseUrl}/${type}/${tmdbId}`);
   url.searchParams.set("language", "en-US");
 
+  const isV3Key = /^[a-f0-9]{32}$/i.test(apiKey.trim());
+  if (isV3Key) {
+    url.searchParams.set("api_key", apiKey.trim());
+  }
+
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      ...(isV3Key ? {} : { Authorization: `Bearer ${apiKey.trim()}` }),
       "Content-Type": "application/json",
     },
     next: { revalidate: 3600 },
