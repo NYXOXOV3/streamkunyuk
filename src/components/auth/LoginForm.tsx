@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 
 export function LoginForm() {
-  const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,8 +54,8 @@ export function LoginForm() {
     }
 
     toast({ title: "Welcome back!", description: "You are now signed in." });
-    router.push("/");
-    router.refresh();
+    // Full page reload so middleware picks up auth cookies
+    window.location.href = "/admin";
   }
 
   async function handleGoogleSignIn() {
