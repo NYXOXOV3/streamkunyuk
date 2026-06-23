@@ -418,6 +418,25 @@ export async function updateEpisode(
   }
 }
 
+export async function deleteContent(
+  contentId: string,
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createAdminClient();
+    // Delete episodes first (cascade), then the content
+    await supabase.from("episodes").delete().eq("content_id", contentId);
+    const { error } = await supabase
+      .from("contents")
+      .delete()
+      .eq("id", contentId);
+
+    if (error) throw error;
+    return { success: true, error: null };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
 export async function deleteEpisode(
   episodeId: string,
 ): Promise<{ success: boolean; error: string | null }> {

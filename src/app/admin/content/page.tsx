@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,17 @@ import {
   ListVideo,
   Loader2,
   Pencil,
+  Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const TYPE_COLORS: Record<ContentType, string> = {
   movie: "bg-blue-500/20 text-blue-300 border-blue-500/30",
@@ -48,6 +58,8 @@ export default function ContentListPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [deleteTarget, setDeleteTarget] = useState<Content | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: contents = [], isLoading, error } = useQuery({
     queryKey: ["admin-content-list", typeFilter, statusFilter, search],
@@ -62,6 +74,21 @@ export default function ContentListPage() {
       return (json.data ?? []) as Content[];
     },
     staleTime: 1000 * 60 * 2,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/content/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Delete failed");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-content-list"] });
+      toast.success("Content deleted successfully");
+      setDeleteTarget(null);
+    },
+    onError: (e) => toast.error(`Failed to delete: ${e.message}`),
   });
 
   return (
@@ -219,6 +246,15 @@ export default function ContentListPage() {
                               Episodes
                             </Link>
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setDeleteTarget(item)}
+                            className="text-xs h-7 w-7 p-0 text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                            title="Delete content"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -236,6 +272,68 @@ export default function ContentListPage() {
           </p>
         )}
       </div>
+
+      {/* ===================== DELETE CONTENT DIALOG ===================== */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent className="bg-cinema-surface border-cinema-border rounded-2xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Delete Content</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              This action cannot be undone. The content and all its episodes will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <div className="flex items-center gap-3 rounded-xl bg-red-500/5 border border-red-500/20 px-4 py-3">
+              {deleteTarget?.poster_url ? (
+                <img
+                  src={deleteTarget.poster_url}
+                  alt=""
+                  className="w-10 h-14 object-cover rounded-sm bg-cinema-elevated shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-14 rounded-sm bg-cinema-elevated flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {deleteTarget?.title}
+                </p>
+                <p className="text-[11px] text-muted-foreground capitalize">
+                  {deleteTarget?.type} &middot; {deleteTarget?.status}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteTarget(null)}
+              className="rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+              className="rounded-xl"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-1.5" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
