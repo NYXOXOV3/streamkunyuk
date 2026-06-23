@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EpisodeGrid } from "@/components/content/EpisodeGrid";
 import type { Content, ContentType, Category, Episode } from "@/lib/supabase/types";
+import { TYPE_LABELS } from "@/lib/constants";
 import {
   Play,
   Star,
@@ -22,14 +23,6 @@ import {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const TYPE_LABELS: Record<ContentType, string> = {
-  movie: "Movie",
-  series: "Series",
-  anime: "Anime",
-  donghua: "Donghua",
-  microdrama: "Micro-Drama",
-};
 
 const TYPE_ICONS: Record<ContentType, typeof Film> = {
   movie: Film,
@@ -150,7 +143,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
     content.is_premium_only && !isSubscriber && !hasEpisodes;
 
   return (
-    <div className="min-h-screen bg-background -mt-16">
+    <div className="min-h-screen bg-transparent -mt-16">
       {/* Backdrop Section */}
       <div className="relative w-full h-[50vh] sm:h-[55vh] min-h-[350px] max-h-[600px]">
         {content.backdrop_url ? (
@@ -416,7 +409,7 @@ export default async function ContentDetailPage({ params }: PageProps) {
 
 function ContentDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       {/* Backdrop skeleton */}
       <div className="relative w-full h-[55vh] min-h-[350px] bg-cinema-surface">
         <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-cinema-surface via-cinema-elevated to-cinema-surface bg-[length:200%_100%]" />

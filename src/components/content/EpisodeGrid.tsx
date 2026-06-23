@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 /**
  * EpisodeGrid
  *
@@ -164,7 +166,7 @@ function EpisodeCard({
       return;
     }
     // Navigate to player
-    window.location.href = `/watch/${contentId}/${episode.id}`;
+    router.push(`/watch/${contentId}/${episode.id}`);
   }
 
   return (
@@ -285,6 +287,7 @@ export function EpisodeGrid({
   contentPremiumOnly,
   isSubscriber,
 }: EpisodeGridProps) {
+  const router = useRouter();
   const [showAll, setShowAll] = useState(false);
   const INITIAL_COUNT = 6;
 

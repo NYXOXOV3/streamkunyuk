@@ -21,19 +21,8 @@ import Link from "next/link";
 import { Play, Info, Star, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Content, ContentType } from "@/lib/supabase/types";
-
-// ---------------------------------------------------------------------------
-// Type label map
-// ---------------------------------------------------------------------------
-
-const TYPE_LABELS: Record<ContentType, string> = {
-  movie: "Movie",
-  series: "Series",
-  anime: "Anime",
-  donghua: "Donghua",
-  microdrama: "Micro-Drama",
-};
+import type { Content } from "@/lib/supabase/types";
+import { TYPE_LABELS } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Component

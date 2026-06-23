@@ -76,7 +76,7 @@ export function ContentCarousel({
           {contents.map((content, i) => (
             <div
               key={content.id}
-              className="shrink-0 w-[140px] sm:w-[185px] md:w-[210px] lg:w-[230px] xl:w-[250px]"
+              className="shrink-0 w-[120px] sm:w-[150px] md:w-[165px] lg:w-[175px] xl:w-[190px]"
             >
               <ContentCard content={content} index={i} />
             </div>

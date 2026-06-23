@@ -3,11 +3,11 @@
 /**
  * ContentCard
  *
- * Reusable poster card for content rows (home carousels, browse grid).
+ * Reusable VERTICAL POSTER card for content rows (home carousels, browse grid).
  * Uses Framer Motion for staggered fade-in and hover scale.
  *
  * Features:
- *   - 16:9 aspect ratio with backdrop/poster image
+ *   - 2:3 portrait aspect ratio with poster image (fallback to backdrop)
  *   - Hover: scale up, gradient overlay, centered Play button
  *   - Premium badge (gold) if content.is_premium_only
  *   - Rating badge (bottom-left) if rating > 0
@@ -18,19 +18,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Play, Crown, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { Content, ContentType } from "@/lib/supabase/types";
-
-// ---------------------------------------------------------------------------
-// Type label map
-// ---------------------------------------------------------------------------
-
-const TYPE_LABELS: Record<ContentType, string> = {
-  movie: "Movie",
-  series: "Series",
-  anime: "Anime",
-  donghua: "Donghua",
-  microdrama: "Micro-Drama",
-};
+import type { Content } from "@/lib/supabase/types";
+import { TYPE_LABELS } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -42,7 +31,8 @@ interface ContentCardProps {
 }
 
 export function ContentCard({ content, index = 0 }: ContentCardProps) {
-  const imageUrl = content.backdrop_url || content.poster_url;
+  // Prefer poster_url for vertical cards, fallback to backdrop_url
+  const imageUrl = content.poster_url || content.backdrop_url;
 
   return (
     <motion.div
@@ -52,8 +42,8 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
       transition={{ delay: index * 0.04, duration: 0.4, ease: "easeOut" }}
     >
       <Link href={`/watch/${content.id}`} className="block group">
-        {/* Image Container */}
-        <div className="relative aspect-video rounded-md overflow-hidden bg-cinema-elevated">
+        {/* Image Container — VERTICAL poster (2:3 portrait) */}
+        <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-cinema-elevated">
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -68,7 +58,7 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
           )}
 
           {/* Bottom gradient (always visible for readability) */}
-          <div className="absolute inset-x-0 bottom-0 h-1/3 cinema-gradient-card pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-2/5 cinema-gradient-card pointer-events-none" />
 
           {/* Premium Badge */}
           {content.is_premium_only && (

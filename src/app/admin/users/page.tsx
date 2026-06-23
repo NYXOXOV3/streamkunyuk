@@ -16,16 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, ShieldCheck, User } from "lucide-react";
-
-interface UserSubscription {
-  id: string;
-  status: string;
-  current_period_end: string | null;
-  subscription_tier: {
-    display_name: string;
-  } | null;
-}
+import { Search, ShieldCheck, User } from "lucide-react";
 
 interface UserRow {
   id: string;
@@ -33,7 +24,9 @@ interface UserRow {
   avatar_url: string | null;
   is_admin: boolean;
   created_at: string;
-  subscriptions: UserSubscription[];
+  subscription_status: string | null;
+  subscription_tier: string | null;
+  subscription_end: string | null;
 }
 
 export default function UsersPage() {
@@ -97,9 +90,6 @@ export default function UsersPage() {
                   <TableHead className="text-xs text-muted-foreground w-32">
                     Joined
                   </TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-24 text-right">
-                    Actions
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -124,14 +114,11 @@ export default function UsersPage() {
                       <TableCell>
                         <Skeleton className="h-4 w-24" />
                       </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-8 w-16 ml-auto" />
-                      </TableCell>
                     </TableRow>
                   ))
                 ) : users.length === 0 ? (
                   <TableRow className="border-cinema-border">
-                    <TableCell colSpan={5} className="text-center py-12">
+                    <TableCell colSpan={4} className="text-center py-12">
                       <p className="text-sm text-muted-foreground">
                         No users found
                       </p>
@@ -139,10 +126,6 @@ export default function UsersPage() {
                   </TableRow>
                 ) : (
                   users.map((user) => {
-                    const activeSub = user.subscriptions?.find(
-                      (s) => s.status === "active",
-                    );
-
                     return (
                       <TableRow
                         key={user.id}
@@ -190,7 +173,7 @@ export default function UsersPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {activeSub ? (
+                          {user.subscription_status === "active" ? (
                             <div className="flex flex-col gap-0.5">
                               <Badge
                                 variant="outline"
@@ -199,8 +182,7 @@ export default function UsersPage() {
                                 Active
                               </Badge>
                               <span className="text-[11px] text-muted-foreground">
-                                {activeSub.subscription_tier?.display_name ||
-                                  "Standard"}
+                                {user.subscription_tier || "Standard"}
                               </span>
                             </div>
                           ) : (
@@ -221,17 +203,6 @@ export default function UsersPage() {
                               year: "numeric",
                             },
                           )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            className="border-cinema-border text-xs h-7"
-                          >
-                            <Eye className="w-3.5 h-3.5 mr-1" />
-                            View
-                          </Button>
                         </TableCell>
                       </TableRow>
                     );

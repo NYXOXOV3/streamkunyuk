@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
   ChevronRight,
+  LayoutGrid,
   Film,
   Tv,
   Sparkles,
@@ -46,7 +47,7 @@ import type { Content } from "@/lib/supabase/types";
 // ---------------------------------------------------------------------------
 
 const TYPE_FILTERS: { label: string; value: string; icon: React.ReactNode }[] = [
-  { label: "All", value: "all", icon: <Film className="w-4 h-4" /> },
+  { label: "All", value: "all", icon: <LayoutGrid className="w-4 h-4" /> },
   { label: "Movie", value: "movie", icon: <Film className="w-4 h-4" /> },
   { label: "Series", value: "series", icon: <Tv className="w-4 h-4" /> },
   { label: "Anime", value: "anime", icon: <Sparkles className="w-4 h-4" /> },
@@ -72,10 +73,10 @@ interface BrowseResponse {
 
 function BrowseSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {Array.from({ length: 12 }).map((_, i) => (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+      {Array.from({ length: 14 }).map((_, i) => (
         <div key={i} className="space-y-2">
-          <Skeleton className="aspect-video w-full rounded-md bg-cinema-elevated" />
+          <Skeleton className="aspect-[2/3] w-full rounded-md bg-cinema-elevated" />
           <Skeleton className="h-4 w-3/4 rounded" />
           <Skeleton className="h-3 w-1/2 rounded" />
         </div>
@@ -335,7 +336,7 @@ function BrowseContent() {
               {totalCount === 1 ? "title" : "titles"} found
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
               {contents.map((content, index) => (
                 <ContentCard
                   key={content.id}

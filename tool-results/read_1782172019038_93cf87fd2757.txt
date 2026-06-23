@@ -1,0 +1,615 @@
+     1→/**
+     2→ * StreamVault - Full Supabase Schema Setup + Seed Data
+     3→ * 
+     4→ * This script:
+     5→ * 1. Creates ALL tables needed by the app
+     6→ * 2. Seeds an admin user + sample content with episodes
+     7→ */
+     8→
+     9→import { createClient } from "@supabase/supabase-js";
+    10→
+    11→const SUPABASE_URL = "https://gjrckrnmspbolvrujmnf.supabase.co";
+    12→const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqcmNrcm5tc3Bib2x2cnVqbW5mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjAzNDk1MywiZXhwIjoyMDk3NjEwOTUzfQ._osuy9lG__GMLd89Q8uhzuhT6b4kL-vqJaO-IhmvCHI";
+    13→
+    14→const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    15→  auth: { autoRefreshToken: false, persistSession: false },
+    16→});
+    17→
+    18→async function setup() {
+    19→  console.log("🚀 StreamVault Supabase Setup\n");
+    20→
+    21→  // Check connection
+    22→  const { error: connCheck } = await supabase.from("profiles").select("id").limit(1);
+    23→  console.log(`📡 Connection: OK`);
+    24→  console.log(`📋 Profiles table exists: ${!connCheck ? "YES" : "NO (${connCheck.message})"}`);
+    25→
+    26→  if (connCheck && connCheck.message.includes("does not exist")) {
+    27→    console.log("\n❌ Tables don't exist yet. Creating via SQL first...");
+    28→    console.log("Please run the SQL schema in your Supabase SQL Editor first.");
+    29→    console.log("SQL file will be generated at scripts/schema.sql");
+    30→    generateSchemaSQL();
+    31→    return;
+    32→  }
+    33→
+    34→  // ============================================================
+    35→  // STEP 1: Create Admin User
+    36→  // ============================================================
+    37→  console.log("\n▶ Creating admin user...");
+    38→
+    39→  let adminId: string | undefined;
+    40→
+    41→  const { data: adminUser, error: adminError } = await supabase.auth.admin.createUser({
+    42→    email: "admin@streamvault.com",
+    43→    password: "admin123456",
+    44→    email_confirm: true,
+    45→    user_metadata: { display_name: "Admin" },
+    46→  });
+    47→
+    48→  if (adminError) {
+    49→    if (adminError.message.includes("already registered") || adminError.message.includes("already exists")) {
+    50→      console.log("  ⚠ Admin email already exists, fetching...");
+    51→      const { data: existing } = await supabase.auth.admin.listUsers();
+    52→      const found = existing?.users?.find(u => u.email === "admin@streamvault.com");
+    53→      if (found) {
+    54→        adminId = found.id;
+    55→        console.log(`  ✅ Found existing admin: ${adminId}`);
+    56→      }
+    57→    } else {
+    58→      console.log(`  ❌ Error: ${adminError.message}`);
+    59→    }
+    60→  } else {
+    61→    adminId = adminUser.user.id;
+    62→    console.log(`  ✅ Admin user created: ${adminId}`);
+    63→  }
+    64→
+    65→  if (!adminId) {
+    66→    console.log("  ❌ Could not get admin user ID, aborting.");
+    67→    return;
+    68→  }
+    69→
+    70→  // ============================================================
+    71→  // STEP 2: Set admin profile
+    72→  // ============================================================
+    73→  console.log("\n▶ Setting admin profile (is_admin = true)...");
+    74→  const { error: profileErr } = await supabase
+    75→    .from("profiles")
+    76→    .upsert({ id: adminId, display_name: "Admin", is_admin: true }, { onConflict: "id" });
+    77→
+    78→  if (profileErr) {
+    79→    console.log(`  ❌ Profile error: ${profileErr.message}`);
+    80→  } else {
+    81→    console.log("  ✅ Admin profile set");
+    82→  }
+    83→
+    84→  // ============================================================
+    85→  // STEP 3: Seed Categories
+    86→  // ============================================================
+    87→  console.log("\n▶ Seeding categories...");
+    88→  const categories = [
+    89→    { name: "Action", slug: "action", sort_order: 1 },
+    90→    { name: "Comedy", slug: "comedy", sort_order: 2 },
+    91→    { name: "Drama", slug: "drama", sort_order: 3 },
+    92→    { name: "Horror", slug: "horror", sort_order: 4 },
+    93→    { name: "Romance", slug: "romance", sort_order: 5 },
+    94→    { name: "Sci-Fi", slug: "sci-fi", sort_order: 6 },
+    95→    { name: "Thriller", slug: "thriller", sort_order: 7 },
+    96→    { name: "Fantasy", slug: "fantasy", sort_order: 8 },
+    97→    { name: "Animation", slug: "animation", sort_order: 9 },
+    98→    { name: "Documentary", slug: "documentary", sort_order: 10 },
+    99→  ];
+   100→
+   101→  let catOk = 0, catFail = 0;
+   102→  for (const cat of categories) {
+   103→    const { error } = await supabase.from("categories").upsert(cat, { onConflict: "slug" });
+   104→    if (error) { catFail++; if (catFail <= 2) console.log(`  ⚠ "${cat.name}": ${error.message}`); }
+   105→    else catOk++;
+   106→  }
+   107→  console.log(`  ✅ Categories: ${catOk} seeded${catFail ? `, ${catFail} failed` : ""}`);
+   108→
+   109→  // ============================================================
+   110→  // STEP 4: Seed Content
+   111→  // ============================================================
+   112→  console.log("\n▶ Seeding content (10 items)...");
+   113→  const sampleContent = [
+   114→    {
+   115→      id: "demo-movie-1", title: "The Last Horizon", type: "movie", release_year: 2024,
+   116→      poster_url: "https://placehold.co/400x600/1a1a2e/e50914?text=Last+Horizon&font=montserrat",
+   117→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/e50914?text=The+Last+Horizon&font=montserrat",
+   118→      synopsis: "In a post-apocalyptic world, a lone survivor embarks on a dangerous journey across the wasteland to find the last safe haven for humanity.",
+   119→      rating: 8.5, rating_count: 12500, language: "en", is_premium_only: false,
+   120→      status: "published", featured: true, featured_order: 1, published_at: "2024-12-01T00:00:00Z",
+   121→    },
+   122→    {
+   123→      id: "demo-series-1", title: "Shadow Protocol", type: "series", release_year: 2024,
+   124→      poster_url: "https://placehold.co/400x600/1a1a2e/d4af37?text=Shadow+Protocol&font=montserrat",
+   125→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/d4af37?text=Shadow+Protocol&font=montserrat",
+   126→      synopsis: "A brilliant cyber-security analyst discovers a hidden conspiracy within the world's largest tech company. As she digs deeper, she realizes the conspiracy reaches into the highest levels of government.",
+   127→      rating: 9.1, rating_count: 28300, language: "en", is_premium_only: true, free_trial_episodes: 3,
+   128→      status: "published", featured: true, featured_order: 2, published_at: "2024-11-15T00:00:00Z",
+   129→    },
+   130→    {
+   131→      id: "demo-anime-1", title: "Blade of Eternity", type: "anime", release_year: 2024,
+   132→      poster_url: "https://placehold.co/400x600/1a1a2e/ff6b35?text=Blade+Eternity&font=montserrat",
+   133→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/ff6b35?text=Blade+of+Eternity&font=montserrat",
+   134→      synopsis: "In a world where swordsmen channel spiritual energy through ancient blades, a young orphan discovers he wields the legendary Eternal Blade — a weapon that hasn't been awakened in a thousand years.",
+   135→      rating: 8.9, rating_count: 45600, language: "ja", country_of_origin: "JP",
+   136→      is_premium_only: true, free_trial_episodes: 2,
+   137→      status: "published", featured: true, featured_order: 3, published_at: "2024-10-20T00:00:00Z",
+   138→    },
+   139→    {
+   140→      id: "demo-movie-2", title: "Midnight Express", type: "movie", release_year: 2023,
+   141→      poster_url: "https://placehold.co/400x600/1a1a2e/00d4ff?text=Midnight+Express&font=montserrat",
+   142→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/00d4ff?text=Midnight+Express&font=montserrat",
+   143→      synopsis: "A retired intelligence officer is pulled back into action when a former ally goes rogue with a weapon that could destabilize entire nations.",
+   144→      rating: 7.8, rating_count: 8900, language: "en", is_premium_only: false,
+   145→      status: "published", featured: true, featured_order: 4, published_at: "2024-09-01T00:00:00Z",
+   146→    },
+   147→    {
+   148→      id: "demo-donghua-1", title: "Cultivation Supreme", type: "donghua", release_year: 2024,
+   149→      poster_url: "https://placehold.co/400x600/1a1a2e/bd93f9?text=Cultivation+Supreme&font=montserrat",
+   150→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/bd93f9?text=Cultivation+Supreme&font=montserrat",
+   151→      synopsis: "Born with the lowest spiritual root in a cultivation world, a young man defies all expectations when he discovers an ancient inheritance.",
+   152→      rating: 8.7, rating_count: 32100, language: "zh", country_of_origin: "CN",
+   153→      is_premium_only: false, status: "published", featured: true, featured_order: 5, published_at: "2024-11-01T00:00:00Z",
+   154→    },
+   155→    {
+   156→      id: "demo-series-2", title: "The Underground", type: "series", release_year: 2023,
+   157→      poster_url: "https://placehold.co/400x600/1a1a2e/50fa7b?text=The+Underground&font=montserrat",
+   158→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/50fa7b?text=The+Underground&font=montserrat",
+   159→      synopsis: "Deep beneath the streets of modern London lies a secret society that has controlled the city's fate for centuries.",
+   160→      rating: 8.2, rating_count: 15700, language: "en", is_premium_only: false,
+   161→      status: "published", featured: false, published_at: "2024-08-15T00:00:00Z",
+   162→    },
+   163→    {
+   164→      id: "demo-movie-3", title: "Neon Requiem", type: "movie", release_year: 2024,
+   165→      poster_url: "https://placehold.co/400x600/1a1a2e/f1fa8c?text=Neon+Requiem&font=montserrat",
+   166→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/f1fa8c?text=Neon+Requiem&font=montserrat",
+   167→      synopsis: "In a cyberpunk megacity of 2087, a street musician discovers that her songs can hack into people's neural implants.",
+   168→      rating: 8.0, rating_count: 6700, language: "en", is_premium_only: true,
+   169→      status: "published", featured: false, published_at: "2024-12-10T00:00:00Z",
+   170→    },
+   171→    {
+   172→      id: "demo-anime-2", title: "Spirit Hunter Academy", type: "anime", release_year: 2023,
+   173→      poster_url: "https://placehold.co/400x600/1a1a2e/ff79c6?text=Spirit+Hunter&font=montserrat",
+   174→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/ff79c6?text=Spirit+Hunter+Academy&font=montserrat",
+   175→      synopsis: "At an exclusive academy hidden between dimensions, students learn to hunt malevolent spirits.",
+   176→      rating: 8.3, rating_count: 21400, language: "ja", country_of_origin: "JP",
+   177→      is_premium_only: false, status: "published", featured: false, published_at: "2024-07-01T00:00:00Z",
+   178→    },
+   179→    {
+   180→      id: "demo-microdrama-1", title: "Love in 60 Seconds", type: "microdrama", release_year: 2024,
+   181→      poster_url: "https://placehold.co/400x600/1a1a2e/ffb86c?text=Love+60s&font=montserrat",
+   182→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/ffb86c?text=Love+in+60+Seconds&font=montserrat",
+   183→      synopsis: "A fast-paced romantic micro-series following two rival coffee shop owners who keep running into each other.",
+   184→      rating: 7.5, rating_count: 4300, language: "en", is_premium_only: false,
+   185→      status: "published", featured: false, published_at: "2024-11-20T00:00:00Z",
+   186→    },
+   187→    {
+   188→      id: "demo-movie-4", title: "The Architect", type: "movie", release_year: 2024,
+   189→      poster_url: "https://placehold.co/400x600/1a1a2e/8be9fd?text=The+Architect&font=montserrat",
+   190→      backdrop_url: "https://placehold.co/1920x800/1a1a2e/8be9fd?text=The+Architect&font=montserrat",
+   191→      synopsis: "A renowned architect discovers that the buildings she designs are being used as part of a vast surveillance network.",
+   192→      rating: 7.9, rating_count: 5100, language: "en", is_premium_only: false,
+   193→      status: "published", featured: false, published_at: "2024-12-05T00:00:00Z",
+   194→    },
+   195→  ];
+   196→
+   197→  let contentOk = 0, contentFail = 0;
+   198→  for (const c of sampleContent) {
+   199→    const { error } = await supabase.from("contents").upsert(c, { onConflict: "id" });
+   200→    if (error) { contentFail++; if (contentFail <= 2) console.log(`  ⚠ "${c.title}": ${error.message}`); }
+   201→    else { contentOk++; console.log(`  ✅ "${c.title}"`); }
+   202→  }
+   203→  console.log(`  📊 Content: ${contentOk} seeded${contentFail ? `, ${contentFail} failed` : ""}`);
+   204→
+   205→  // ============================================================
+   206→  // STEP 5: Seed Episodes
+   207→  // ============================================================
+   208→  console.log("\n▶ Seeding episodes...");
+   209→
+   210→  const episodeTemplates = [
+   211→    // Shadow Protocol (premium, first 3 free trial)
+   212→    ...Array.from({ length: 6 }, (_, i) => ({
+   213→      content_id: "demo-series-1", episode_number: i + 1,
+   214→      title: ["The Signal", "Ghost in the Code", "The Insider", "Burn Notice", "Crossfire", "Zero Day"][i],
+   215→      is_locked: i >= 3, is_free_trial: i < 3, runtime_seconds: [2700, 2850, 2600, 2900, 2750, 3000][i],
+   216→    })),
+   217→    // Blade of Eternity (premium, first 2 free trial)
+   218→    ...Array.from({ length: 5 }, (_, i) => ({
+   219→      content_id: "demo-anime-1", episode_number: i + 1,
+   220→      title: ["The Awakening", "First Blood", "The Tournament", "Hidden Power", "The Betrayal"][i],
+   221→      is_locked: i >= 2, is_free_trial: i < 2, runtime_seconds: 1440,
+   222→    })),
+   223→    // Cultivation Supreme (free)
+   224→    ...Array.from({ length: 4 }, (_, i) => ({
+   225→      content_id: "demo-donghua-1", episode_number: i + 1,
+   226→      title: ["Mortal Root", "Spirit Bone", "The Inheritance", "Ascension"][i],
+   227→      is_locked: false, is_free_trial: false, runtime_seconds: 1440,
+   228→    })),
+   229→    // The Underground (free)
+   230→    ...Array.from({ length: 3 }, (_, i) => ({
+   231→      content_id: "demo-series-2", episode_number: i + 1,
+   232→      title: ["Beneath the Streets", "The Society", "Uncovered"][i],
+   233→      is_locked: false, is_free_trial: false, runtime_seconds: [3000, 2850, 2900][i],
+   234→    })),
+   235→    // Spirit Hunter Academy (free)
+   236→    ...Array.from({ length: 3 }, (_, i) => ({
+   237→      content_id: "demo-anime-2", episode_number: i + 1,
+   238→      title: ["Enrollment Day", "No Spiritual Power", "The Barrier Falls"][i],
+   239→      is_locked: false, is_free_trial: false, runtime_seconds: 1440,
+   240→    })),
+   241→    // Love in 60 Seconds (microdrama, free)
+   242→    ...Array.from({ length: 4 }, (_, i) => ({
+   243→      content_id: "demo-microdrama-1", episode_number: i + 1,
+   244→      title: ["Spill", "The Rivalry", "Rain", "The Finale"][i],
+   245→      is_locked: false, is_free_trial: false, runtime_seconds: [90, 105, 120, 110][i],
+   246→    })),
+   247→  ];
+   248→
+   249→  let epOk = 0, epFail = 0;
+   250→  for (const ep of episodeTemplates) {
+   251→    const { error } = await supabase.from("episodes").upsert({
+   252→      id: `${ep.content_id}-ep${ep.episode_number}`,
+   253→      content_id: ep.content_id,
+   254→      episode_number: ep.episode_number,
+   255→      title: ep.title,
+   256→      synopsis: `Episode ${ep.episode_number} — ${ep.title}`,
+   257→      thumbnail_url: `https://placehold.co/640x360/1a1a2e/e50914?text=Ep+${ep.episode_number}&font=montserrat`,
+   258→      runtime_seconds: ep.runtime_seconds,
+   259→      video_url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+   260→      is_locked: ep.is_locked,
+   261→      is_free_trial: ep.is_free_trial,
+   262→    }, { onConflict: "id" });
+   263→
+   264→    if (error) { epFail++; if (epFail <= 2) console.log(`  ⚠ Episode: ${error.message}`); }
+   265→    else epOk++;
+   266→  }
+   267→  console.log(`  📊 Episodes: ${epOk} seeded${epFail ? `, ${epFail} failed` : ""}`);
+   268→
+   269→  // ============================================================
+   270→  // DONE
+   271→  // ============================================================
+   272→  console.log("\n" + "=".repeat(50));
+   273→  console.log("✅ SETUP COMPLETE!");
+   274→  console.log("=".repeat(50));
+   275→  console.log("\n📧 Admin Login:");
+   276→  console.log("   Email:    admin@streamvault.com");
+   277→  console.log("   Password: admin123456");
+   278→  console.log("\n🌐 Open http://localhost:3000/login to test!");
+   279→}
+   280→
+   281→async function generateSchemaSQL() {
+   282→  const sql = `-- StreamVault Full Schema
+   283→-- Run this in Supabase SQL Editor
+   284→
+   285→-- Enable UUID extension
+   286→CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+   287→
+   288→-- ============================================
+   289→-- PROFILES (extends Supabase auth.users)
+   290→-- ============================================
+   291→CREATE TABLE IF NOT EXISTS public.profiles (
+   292→  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+   293→  display_name TEXT,
+   294→  avatar_url TEXT,
+   295→  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+   296→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   297→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   298→);
+   299→
+   300→ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+   301→CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING (true);
+   302→CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+   303→CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+   304→
+   305→-- Auto-create profile on signup
+   306→CREATE OR REPLACE FUNCTION public.handle_new_user()
+   307→RETURNS TRIGGER AS $$
+   308→BEGIN
+   309→  INSERT INTO public.profiles (id, display_name, avatar_url, is_admin)
+   310→  VALUES (
+   311→    NEW.id,
+   312→    COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+   313→    NEW.raw_user_meta_data->>'avatar_url',
+   314→    false
+   315→  );
+   316→  RETURN NEW;
+   317→END;
+   318→$$ LANGUAGE plpgsql SECURITY DEFINER;
+   319→
+   320→DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+   321→CREATE TRIGGER on_auth_user_created
+   322→  AFTER INSERT ON auth.users
+   323→  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+   324→
+   325→-- ============================================
+   326→-- CATEGORIES
+   327→-- ============================================
+   328→CREATE TABLE IF NOT EXISTS public.categories (
+   329→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   330→  name TEXT NOT NULL,
+   331→  slug TEXT NOT NULL UNIQUE,
+   332→  type_filter TEXT,
+   333→  icon_url TEXT,
+   334→  sort_order INT NOT NULL DEFAULT 0
+   335→);
+   336→
+   337→ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+   338→CREATE POLICY "Anyone can read categories" ON public.categories FOR SELECT USING (true);
+   339→
+   340→-- ============================================
+   341→-- CONTENT_PROVIDERS
+   342→-- ============================================
+   343→CREATE TABLE IF NOT EXISTS public.content_providers (
+   344→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   345→  name TEXT NOT NULL,
+   346→  type TEXT NOT NULL,
+   347→  api_provider_id UUID REFERENCES public.api_providers(id) ON DELETE SET NULL,
+   348→  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   349→);
+   350→
+   351→ALTER TABLE public.content_providers ENABLE ROW LEVEL SECURITY;
+   352→CREATE POLICY "Anyone can read content_providers" ON public.content_providers FOR SELECT USING (true);
+   353→
+   354→-- ============================================
+   355→-- API_PROVIDERS
+   356→-- ============================================
+   357→CREATE TABLE IF NOT EXISTS public.api_providers (
+   358→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   359→  provider_name TEXT NOT NULL,
+   360→  provider_type TEXT NOT NULL DEFAULT 'metadata',
+   361→  description TEXT,
+   362→  base_url TEXT,
+   363→  is_active BOOLEAN NOT NULL DEFAULT true,
+   364→  last_tested_at TIMESTAMPTZ,
+   365→  test_status TEXT NOT NULL DEFAULT 'untested',
+   366→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   367→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   368→);
+   369→
+   370→ALTER TABLE public.api_providers ENABLE ROW LEVEL SECURITY;
+   371→CREATE POLICY "Admins can manage api_providers" ON public.api_providers FOR ALL USING (
+   372→  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+   373→);
+   374→
+   375→-- ============================================
+   376→-- SUBSCRIPTION_TIERS
+   377→-- ============================================
+   378→CREATE TABLE IF NOT EXISTS public.subscription_tiers (
+   379→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   380→  name TEXT NOT NULL UNIQUE,
+   381→  display_name TEXT NOT NULL,
+   382→  price_monthly DECIMAL(10,2) NOT NULL DEFAULT 0,
+   383→  price_yearly DECIMAL(10,2) NOT NULL DEFAULT 0,
+   384→  max_quality TEXT NOT NULL DEFAULT '1080p',
+   385→  features TEXT[] NOT NULL DEFAULT '{}',
+   386→  is_active BOOLEAN NOT NULL DEFAULT true,
+   387→  sort_order INT NOT NULL DEFAULT 0,
+   388→  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   389→);
+   390→
+   391→ALTER TABLE public.subscription_tiers ENABLE ROW LEVEL SECURITY;
+   392→CREATE POLICY "Anyone can read subscription_tiers" ON public.subscription_tiers FOR SELECT USING (true);
+   393→
+   394→-- ============================================
+   395→-- SUBSCRIPTIONS
+   396→-- ============================================
+   397→CREATE TABLE IF NOT EXISTS public.subscriptions (
+   398→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   399→  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   400→  tier_id UUID NOT NULL REFERENCES public.subscription_tiers(id) ON DELETE RESTRICT,
+   401→  status TEXT NOT NULL DEFAULT 'inactive' CHECK (status IN ('active','inactive','cancelled','past_due','trialing')),
+   402→  payment_provider TEXT,
+   403→  payment_provider_sub_id TEXT,
+   404→  current_period_start TIMESTAMPTZ,
+   405→  current_period_end TIMESTAMPTZ,
+   406→  trial_end TIMESTAMPTZ,
+   407→  cancelled_at TIMESTAMPTZ,
+   408→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   409→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   410→  UNIQUE(user_id)
+   411→);
+   412→
+   413→ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+   414→CREATE POLICY "Users can read own subscription" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
+   415→CREATE POLICY "Admins can read all subscriptions" ON public.subscriptions FOR SELECT USING (
+   416→  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+   417→);
+   418→
+   419→-- ============================================
+   420→-- CONTENTS
+   421→-- ============================================
+   422→CREATE TABLE IF NOT EXISTS public.contents (
+   423→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   424→  tmdb_id INT,
+   425→  provider_source_id TEXT,
+   426→  title TEXT NOT NULL,
+   427→  original_title TEXT,
+   428→  synopsis TEXT,
+   429→  type TEXT NOT NULL CHECK (type IN ('movie','series','anime','donghua','microdrama')),
+   430→  release_year INT,
+   431→  runtime_minutes INT,
+   432→  poster_url TEXT,
+   433→  backdrop_url TEXT,
+   434→  trailer_url TEXT,
+   435→  rating DECIMAL(3,1) NOT NULL DEFAULT 0,
+   436→  rating_count INT NOT NULL DEFAULT 0,
+   437→  language TEXT NOT NULL DEFAULT 'en',
+   438→  country_of_origin TEXT,
+   439→  external_content_id TEXT,
+   440→  external_url TEXT,
+   441→  is_premium_only BOOLEAN NOT NULL DEFAULT false,
+   442→  free_trial_episodes INT NOT NULL DEFAULT 0,
+   443→  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+   444→  featured BOOLEAN NOT NULL DEFAULT false,
+   445→  featured_order INT NOT NULL DEFAULT 0,
+   446→  slug TEXT,
+   447→  meta_title TEXT,
+   448→  meta_description TEXT,
+   449→  published_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   450→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   451→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   452→);
+   453→
+   454→ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
+   455→CREATE POLICY "Anyone can read published content" ON public.contents FOR SELECT USING (status = 'published');
+   456→CREATE POLICY "Admins can manage content" ON public.contents FOR ALL USING (
+   457→  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+   458→);
+   459→
+   460→-- Full-text search index
+   461→CREATE INDEX IF NOT EXISTS idx_contents_title_search ON public.contents USING GIN (to_tsvector('english', title || ' ' || COALESCE(synopsis, '')));
+   462→CREATE INDEX IF NOT EXISTS idx_contents_type ON public.contents(type);
+   463→CREATE INDEX IF NOT EXISTS idx_contents_status ON public.contents(status);
+   464→CREATE INDEX IF NOT EXISTS idx_contents_featured ON public.contents(featured) WHERE featured = true;
+   465→CREATE INDEX IF NOT EXISTS idx_contents_published ON public.contents(published_at DESC) WHERE status = 'published';
+   466→
+   467→-- ============================================
+   468→-- SEASONS
+   469→-- ============================================
+   470→CREATE TABLE IF NOT EXISTS public.seasons (
+   471→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   472→  content_id UUID NOT NULL REFERENCES public.contents(id) ON DELETE CASCADE,
+   473→  season_number INT NOT NULL,
+   474→  title TEXT,
+   475→  synopsis TEXT,
+   476→  poster_url TEXT,
+   477→  air_date DATE,
+   478→  UNIQUE(content_id, season_number)
+   479→);
+   480→
+   481→ALTER TABLE public.seasons ENABLE ROW LEVEL SECURITY;
+   482→CREATE POLICY "Anyone can read seasons" ON public.seasons FOR SELECT USING (true);
+   483→
+   484→-- ============================================
+   485→-- EPISODES
+   486→-- ============================================
+   487→CREATE TABLE IF NOT EXISTS public.episodes (
+   488→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   489→  content_id UUID NOT NULL REFERENCES public.contents(id) ON DELETE CASCADE,
+   490→  season_id UUID REFERENCES public.seasons(id) ON DELETE SET NULL,
+   491→  episode_number INT NOT NULL,
+   492→  title TEXT,
+   493→  synopsis TEXT,
+   494→  thumbnail_url TEXT,
+   495→  runtime_seconds INT,
+   496→  video_url TEXT,
+   497→  video_url_backup TEXT,
+   498→  video_quality JSONB,
+   499→  subtitles_url JSONB,
+   500→  external_episode_id TEXT,
+   501→  external_url TEXT,
+   502→  is_locked BOOLEAN NOT NULL DEFAULT false,
+   503→  is_free_trial BOOLEAN NOT NULL DEFAULT false,
+   504→  air_date DATE,
+   505→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   506→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   507→  UNIQUE(content_id, episode_number)
+   508→);
+   509→
+   510→ALTER TABLE public.episodes ENABLE ROW LEVEL SECURITY;
+   511→CREATE POLICY "Anyone can read episodes" ON public.episodes FOR SELECT USING (true);
+   512→CREATE POLICY "Admins can manage episodes" ON public.episodes FOR ALL USING (
+   513→  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+   514→);
+   515→
+   516→-- ============================================
+   517→-- CONTENT_CATEGORIES (junction table)
+   518→-- ============================================
+   519→CREATE TABLE IF NOT EXISTS public.content_categories (
+   520→  content_id UUID NOT NULL REFERENCES public.contents(id) ON DELETE CASCADE,
+   521→  category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
+   522→  PRIMARY KEY (content_id, category_id)
+   523→);
+   524→
+   525→ALTER TABLE public.content_categories ENABLE ROW LEVEL SECURITY;
+   526→CREATE POLICY "Anyone can read content_categories" ON public.content_categories FOR SELECT USING (true);
+   527→
+   528→-- ============================================
+   529→-- WATCH_HISTORY
+   530→-- ============================================
+   531→CREATE TABLE IF NOT EXISTS public.watch_history (
+   532→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   533→  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   534→  content_id UUID NOT NULL REFERENCES public.contents(id) ON DELETE CASCADE,
+   535→  episode_id UUID REFERENCES public.episodes(id) ON DELETE SET NULL,
+   536→  progress_seconds INT NOT NULL DEFAULT 0,
+   537→  duration_seconds INT NOT NULL DEFAULT 0,
+   538→  completed BOOLEAN NOT NULL DEFAULT false,
+   539→  last_watched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   540→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   541→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   542→);
+   543→
+   544→ALTER TABLE public.watch_history ENABLE ROW LEVEL SECURITY;
+   545→CREATE POLICY "Users can read own history" ON public.watch_history FOR SELECT USING (auth.uid() = user_id);
+   546→CREATE POLICY "Users can insert own history" ON public.watch_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+   547→CREATE POLICY "Users can update own history" ON public.watch_history FOR UPDATE USING (auth.uid() = user_id);
+   548→
+   549→-- ============================================
+   550→-- FAVORITES
+   551→-- ============================================
+   552→CREATE TABLE IF NOT EXISTS public.favorites (
+   553→  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   554→  content_id UUID NOT NULL REFERENCES public.contents(id) ON DELETE CASCADE,
+   555→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   556→  PRIMARY KEY (user_id, content_id)
+   557→);
+   558→
+   559→ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+   560→CREATE POLICY "Users can read own favorites" ON public.favorites FOR SELECT USING (auth.uid() = user_id);
+   561→CREATE POLICY "Users can insert own favorites" ON public.favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+   562→CREATE POLICY "Users can delete own favorites" ON public.favorites FOR DELETE USING (auth.uid() = user_id);
+   563→
+   564→-- ============================================
+   565→-- PAYMENTS
+   566→-- ============================================
+   567→CREATE TABLE IF NOT EXISTS public.payments (
+   568→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   569→  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   570→  subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+   571→  payment_provider TEXT NOT NULL,
+   572→  provider_payment_id TEXT,
+   573→  amount DECIMAL(10,2) NOT NULL,
+   574→  currency TEXT NOT NULL DEFAULT 'USD',
+   575→  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed','failed','refunded','expired')),
+   576→  payment_method TEXT,
+   577→  metadata JSONB,
+   578→  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   579→);
+   580→
+   581→ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+   582→CREATE POLICY "Users can read own payments" ON public.payments FOR SELECT USING (auth.uid() = user_id);
+   583→CREATE POLICY "Admins can read all payments" ON public.payments FOR SELECT USING (
+   584→  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+   585→);
+   586→
+   587→-- ============================================
+   588→-- Update updated_at trigger
+   589→-- ============================================
+   590→CREATE OR REPLACE FUNCTION public.update_updated_at()
+   591→RETURNS TRIGGER AS $$
+   592→BEGIN
+   593→  NEW.updated_at = now();
+   594→  RETURN NEW;
+   595→END;
+   596→$$ LANGUAGE plpgsql;
+   597→
+   598→CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON public.profiles
+   599→  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+   600→CREATE TRIGGER contents_updated_at BEFORE UPDATE ON public.contents
+   601→  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+   602→CREATE TRIGGER episodes_updated_at BEFORE UPDATE ON public.episodes
+   603→  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+   604→CREATE TRIGGER subscriptions_updated_at BEFORE UPDATE ON public.subscriptions
+   605→  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+   606→`;
+   607→
+   608→  const fs = await import("fs");
+   609→  const path = await import("path");
+   610→  fs.writeFileSync(path.join(process.cwd(), "scripts", "schema.sql"), sql);
+   611→  console.log("\n✅ SQL schema written to scripts/schema.sql");
+   612→  console.log("📝 Copy the contents and run in Supabase Dashboard → SQL Editor");
+   613→}
+   614→
+   615→setup().catch(console.error);

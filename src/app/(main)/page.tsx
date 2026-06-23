@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { HeroBanner } from "@/components/home/HeroBanner";
+import { BannerHero, type BannerItem } from "@/components/home/BannerHero";
 import { ContentCarousel } from "@/components/home/ContentCarousel";
 import { HomeSkeleton } from "@/components/home/HomeSkeleton";
 import type { Content, ContentType, Category, Episode, WatchHistory } from "@/lib/supabase/types";
@@ -370,7 +371,7 @@ function ContinueWatchingRow({
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Hero Banner — server-fetched, rendered client-side for animation */}
       <Suspense fallback={<HeroBannerFallback />}>
         <HeroBannerWrapper />
@@ -387,11 +388,62 @@ export default function HomePage() {
 }
 
 // ---------------------------------------------------------------------------
-// Hero Banner async wrapper
+// Hero Banner async wrapper — checks banners table first, falls back to featured content
 // ---------------------------------------------------------------------------
 
 async function HeroBannerWrapper() {
   const supabase = await createClient();
+
+  // 1. Try to get active banners from the banners table
+  let bannerItems: BannerItem[] = [];
+  try {
+    const now = new Date().toISOString();
+    const { data: banners, error } = await supabase
+      .from("banners")
+      .select(
+        "id, title, subtitle, banner_type, content_id, custom_image_url, custom_link_url, cta_text, cta_link, sort_order, start_date, end_date"
+      )
+      .eq("is_active", true)
+      .or(`start_date.is.null,start_date.lte.${now}`)
+      .or(`end_date.is.null,end_date.gte.${now}`)
+      .order("sort_order", { ascending: true })
+      .limit(10);
+
+    if (!error && banners && banners.length > 0) {
+      // Fetch content details for content-type banners
+      const contentIds = banners
+        .filter((b) => b.banner_type === "content" && b.content_id)
+        .map((b) => b.content_id);
+
+      let contentMap = new Map<string, Record<string, unknown>>();
+      if (contentIds.length > 0) {
+        const { data: contents } = await supabase
+          .from("contents")
+          .select(HERO_SELECT)
+          .eq("status", "published")
+          .in("id", contentIds);
+        for (const c of contents ?? []) {
+          contentMap.set(c.id, c);
+        }
+      }
+
+      bannerItems = banners.map((b) => ({
+        ...b,
+        content: b.banner_type === "content" && b.content_id
+          ? (contentMap.get(b.content_id) ?? null)
+          : null,
+      })) as BannerItem[];
+    }
+  } catch {
+    // banners table might not exist — fall through to featured content
+  }
+
+  // 2. If we have banners, render BannerHero
+  if (bannerItems.length > 0) {
+    return <BannerHero items={bannerItems} />;
+  }
+
+  // 3. Fallback: use featured content from contents table
   const { data } = await supabase
     .from("contents")
     .select(HERO_SELECT)

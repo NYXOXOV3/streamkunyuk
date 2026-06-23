@@ -16,13 +16,13 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-cinema-bg">
       <Navbar />
 
       {/* Main content — bottom padding for mobile nav (h-16) */}
-      <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+      <main className="flex-1">{children}</main>
 
-      <div className="hidden lg:block">
+      <div className="hidden lg:block mt-auto">
         <Footer />
       </div>
 

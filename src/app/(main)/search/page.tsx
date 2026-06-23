@@ -211,7 +211,7 @@ export default function SearchPage() {
   // -------------------------------------------------------------------------
 
   return (
-    <div className="min-h-[80vh] px-4 md:px-6 lg:px-8 max-w-8xl mx-auto pt-8 pb-24">
+    <div className="min-h-[80vh] px-6 md:px-10 lg:px-0 max-w-8xl mx-auto pt-8 pb-24">
       {/* ---- Search Header ---- */}
       <div className="max-w-2xl mx-auto mb-8">
         {/* Search input */}
@@ -280,10 +280,10 @@ export default function SearchPage() {
 
         {/* Loading skeleton (initial load) */}
         {isLoading && results.length === 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
+            {Array.from({ length: 14 }).map((_, i) => (
               <div key={i} className="space-y-2">
-                <Skeleton className="aspect-video rounded-md bg-cinema-elevated" />
+                <Skeleton className="aspect-[2/3] rounded-md bg-cinema-elevated" />
                 <Skeleton className="h-4 w-3/4 bg-cinema-elevated" />
                 <Skeleton className="h-3 w-1/2 bg-cinema-elevated" />
               </div>
@@ -304,7 +304,7 @@ export default function SearchPage() {
 
         {/* Results grid */}
         {!isLoading && results.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
             {results.map((content, index) => (
               <ContentCard key={content.id} content={content} index={index} />
             ))}
