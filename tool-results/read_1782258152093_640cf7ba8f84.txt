@@ -1,0 +1,856 @@
+     1→"use client";
+     2→
+     3→import { useRef, useState, useEffect, useCallback } from "react";
+     4→import Link from "next/link";
+     5→import { useRouter } from "next/navigation";
+     6→import Hls from "hls.js";
+     7→import { usePlayerStore } from "@/lib/stores/playerStore";
+     8→import { ScrollArea } from "@/components/ui/scroll-area";
+     9→import type { Content, Episode } from "@/lib/supabase/types";
+    10→import {
+    11→  Play,
+    12→  Pause,
+    13→  Volume2,
+    14→  VolumeX,
+    15→  Maximize,
+    16→  Minimize,
+    17→  ChevronLeft,
+    18→  ChevronRight,
+    19→  ArrowLeft,
+    20→  List,
+    21→  X,
+    22→  Lock,
+    23→  Crown,
+    24→  Loader2,
+    25→} from "lucide-react";
+    26→
+    27→// ---------------------------------------------------------------------------
+    28→// Types
+    29→// ---------------------------------------------------------------------------
+    30→
+    31→interface PlayerPageData {
+    32→  episode: Episode;
+    33→  content: Content;
+    34→  episodes: Episode[];
+    35→  isSubscriber: boolean;
+    36→  isAuthenticated: boolean;
+    37→}
+    38→
+    39→interface PlayerClientProps {
+    40→  data: PlayerPageData;
+    41→}
+    42→
+    43→// ---------------------------------------------------------------------------
+    44→// Helpers
+    45→// ---------------------------------------------------------------------------
+    46→
+    47→function formatTime(seconds: number): string {
+    48→  if (!isFinite(seconds) || seconds < 0) return "0:00";
+    49→  const h = Math.floor(seconds / 3600);
+    50→  const m = Math.floor((seconds % 3600) / 60);
+    51→  const s = Math.floor(seconds % 60);
+    52→  if (h > 0) {
+    53→    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    54→  }
+    55→  return `${m}:${s.toString().padStart(2, "0")}`;
+    56→}
+    57→
+    58→// ---------------------------------------------------------------------------
+    59→// Component
+    60→// ---------------------------------------------------------------------------
+    61→
+    62→export default function PlayerClient({ data }: PlayerClientProps) {
+    63→  const { episode, content, episodes, isSubscriber, isAuthenticated } = data;
+    64→  const router = useRouter();
+    65→
+    66→  // Refs
+    67→  const videoRef = useRef<HTMLVideoElement>(null);
+    68→  const containerRef = useRef<HTMLDivElement>(null);
+    69→  const hlsRef = useRef<Hls | null>(null);
+    70→  const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    71→    null
+    72→  );
+    73→
+    74→  // Player store
+    75→  const {
+    76→    setEpisode: storeSetEpisode,
+    77→    play: storePlay,
+    78→    pause: storePause,
+    79→    updateTime: storeUpdateTime,
+    80→    setDuration: storeSetDuration,
+    81→    setFullscreen: storeSetFullscreen,
+    82→    setVolume: storeSetVolume,
+    83→    setMuted: storeSetMuted,
+    84→  } = usePlayerStore();
+    85→
+    86→  // Local state
+    87→  const [isPlaying, setIsPlaying] = useState(false);
+    88→  const [currentTime, setCurrentTime] = useState(0);
+    89→  const [duration, setDuration] = useState(0);
+    90→  const [volume, setVolumeLocal] = useState(1);
+    91→  const [isMuted, setIsMuted] = useState(false);
+    92→  const [isFullscreen, setIsFullscreen] = useState(false);
+    93→  const [isBuffering, setIsBuffering] = useState(false);
+    94→  const [showControls, setShowControls] = useState(true);
+    95→  const [showEpisodeList, setShowEpisodeList] = useState(false);
+    96→  const [seekProgress, setSeekProgress] = useState<number | null>(null);
+    97→
+    98→  // Derived
+    99→  const currentEpIndex = episodes.findIndex((e) => e.id === episode.id);
+   100→  const prevEpisode = currentEpIndex > 0 ? episodes[currentEpIndex - 1] : null;
+   101→  const nextEpisode =
+   102→    currentEpIndex < episodes.length - 1 ? episodes[currentEpIndex + 1] : null;
+   103→
+   104→  // Premium lock: episode is locked and user is not a subscriber (and not free trial)
+   105→  const isLocked =
+   106→    episode.is_locked && !isSubscriber && !episode.is_free_trial;
+   107→
+   108→  // Detect vidapi embed URL — use iframe instead of native video
+   109→  const videoUrl = episode.video_url || episode.video_url_backup;
+   110→  const isVidapiEmbed = !!videoUrl && videoUrl.includes("vidapi.qzz.io");
+   111→
+   112→  // ---------------------------------------------------------------------------
+   113→  // Video init: HLS.js or native
+   114→  // ---------------------------------------------------------------------------
+   115→
+   116→  useEffect(() => {
+   117→    if (isLocked || isVidapiEmbed) return;
+   118→
+   119→    const video = videoRef.current;
+   120→    if (!video) return;
+   121→
+   122→    const videoUrl = episode.video_url || episode.video_url_backup;
+   123→    if (!videoUrl) return;
+   124→
+   125→    // Clean up previous HLS instance
+   126→    if (hlsRef.current) {
+   127→      hlsRef.current.destroy();
+   128→      hlsRef.current = null;
+   129→    }
+   130→
+   131→    if (videoUrl.endsWith(".m3u8") && Hls.isSupported()) {
+   132→      const hls = new Hls({
+   133→        enableWorker: true,
+   134→        lowLatencyMode: true,
+   135→      });
+   136→      hlsRef.current = hls;
+   137→      hls.loadSource(videoUrl);
+   138→      hls.attachMedia(video);
+   139→      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+   140→        // Ready to play — don't auto-play
+   141→      });
+   142→      hls.on(Hls.Events.ERROR, (_event, data) => {
+   143→        if (data.fatal) {
+   144→          // Try backup URL on fatal error
+   145→          const backupUrl = episode.video_url_backup;
+   146→          if (backupUrl && backupUrl !== videoUrl) {
+   147→            hls.loadSource(backupUrl);
+   148→          } else {
+   149→            hls.destroy();
+   150→            hlsRef.current = null;
+   151→          }
+   152→        }
+   153→      });
+   154→    } else if (
+   155→      videoUrl.endsWith(".m3u8") &&
+   156→      video.canPlayType("application/vnd.apple.mpegurl")
+   157→    ) {
+   158→      // Safari native HLS
+   159→      video.src = videoUrl;
+   160→    } else {
+   161→      // Direct video URL (mp4, webm, etc.)
+   162→      video.src = videoUrl;
+   163→    }
+   164→
+   165→    return () => {
+   166→      if (hlsRef.current) {
+   167→        hlsRef.current.destroy();
+   168→        hlsRef.current = null;
+   169→      }
+   170→    };
+   171→  }, [episode.video_url, episode.video_url_backup, isLocked, isVidapiEmbed]);
+   172→
+   173→  // ---------------------------------------------------------------------------
+   174→  // Store sync on mount
+   175→  // ---------------------------------------------------------------------------
+   176→
+   177→  useEffect(() => {
+   178→    storeSetEpisode({
+   179→      contentId: content.id,
+   180→      episodeId: episode.id,
+   181→      episodeNumber: episode.episode_number,
+   182→      contentTitle: content.title,
+   183→    });
+   184→  }, [content.id, content.title, episode.id, episode.episode_number, storeSetEpisode]);
+   185→
+   186→  // ---------------------------------------------------------------------------
+   187→  // Video event handlers
+   188→  // ---------------------------------------------------------------------------
+   189→
+   190→  const togglePlay = useCallback(() => {
+   191→    const video = videoRef.current;
+   192→    if (!video || isLocked) return;
+   193→
+   194→    if (video.paused) {
+   195→      video.play().catch(() => {});
+   196→    } else {
+   197→      video.pause();
+   198→    }
+   199→  }, [isLocked]);
+   200→
+   201→  const handleTimeUpdate = useCallback(() => {
+   202→    const video = videoRef.current;
+   203→    if (!video) return;
+   204→    const t = video.currentTime;
+   205→    setCurrentTime(t);
+   206→    storeUpdateTime(t);
+   207→  }, [storeUpdateTime]);
+   208→
+   209→  const handleLoadedMetadata = useCallback(() => {
+   210→    const video = videoRef.current;
+   211→    if (!video) return;
+   212→    const d = video.duration;
+   213→    setDuration(d);
+   214→    storeSetDuration(d);
+   215→  }, [storeSetDuration]);
+   216→
+   217→  // Start the auto-hide timer (call when playing starts or user moves mouse)
+   218→  const startHideTimer = useCallback(() => {
+   219→    setShowControls(true);
+   220→    if (hideControlsTimerRef.current) {
+   221→      clearTimeout(hideControlsTimerRef.current);
+   222→    }
+   223→    hideControlsTimerRef.current = setTimeout(() => {
+   224→      setShowControls(false);
+   225→    }, 3000);
+   226→  }, []);
+   227→
+   228→  const handlePlay = useCallback(() => {
+   229→    setIsPlaying(true);
+   230→    storePlay();
+   231→    startHideTimer();
+   232→  }, [storePlay, startHideTimer]);
+   233→
+   234→  const handlePause = useCallback(() => {
+   235→    setIsPlaying(false);
+   236→    storePause();
+   237→    setShowControls(true);
+   238→    if (hideControlsTimerRef.current) {
+   239→      clearTimeout(hideControlsTimerRef.current);
+   240→    }
+   241→  }, [storePause]);
+   242→
+   243→  const handleWaiting = useCallback(() => setIsBuffering(true), []);
+   244→  const handleCanPlay = useCallback(() => setIsBuffering(false), []);
+   245→
+   246→  const handleEnded = useCallback(() => {
+   247→    setIsPlaying(false);
+   248→    storePause();
+   249→  }, [storePause]);
+   250→
+   251→  // ---------------------------------------------------------------------------
+   252→  // Seek
+   253→  // ---------------------------------------------------------------------------
+   254→
+   255→  const handleSeek = useCallback(
+   256→    (e: React.MouseEvent<HTMLDivElement>) => {
+   257→      const video = videoRef.current;
+   258→      if (!video || !duration) return;
+   259→      const rect = e.currentTarget.getBoundingClientRect();
+   260→      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+   261→      const time = ratio * duration;
+   262→      video.currentTime = time;
+   263→      setCurrentTime(time);
+   264→      storeUpdateTime(time);
+   265→    },
+   266→    [duration, storeUpdateTime]
+   267→  );
+   268→
+   269→  const handleSeekHover = useCallback(
+   270→    (e: React.MouseEvent<HTMLDivElement>) => {
+   271→      const rect = e.currentTarget.getBoundingClientRect();
+   272→      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+   273→      setSeekProgress(ratio * 100);
+   274→    },
+   275→    []
+   276→  );
+   277→
+   278→  const handleSeekLeave = useCallback(() => {
+   279→    setSeekProgress(null);
+   280→  }, []);
+   281→
+   282→  // ---------------------------------------------------------------------------
+   283→  // Volume
+   284→  // ---------------------------------------------------------------------------
+   285→
+   286→  const toggleMute = useCallback(() => {
+   287→    const video = videoRef.current;
+   288→    if (!video) return;
+   289→    const newMuted = !video.muted;
+   290→    video.muted = newMuted;
+   291→    setIsMuted(newMuted);
+   292→    storeSetMuted(newMuted);
+   293→  }, [storeSetMuted]);
+   294→
+   295→  const handleVolumeChange = useCallback(
+   296→    (e: React.ChangeEvent<HTMLInputElement>) => {
+   297→      const video = videoRef.current;
+   298→      if (!video) return;
+   299→      const vol = parseFloat(e.target.value);
+   300→      video.volume = vol;
+   301→      setVolumeLocal(vol);
+   302→      storeSetVolume(vol);
+   303→      if (vol === 0) {
+   304→        video.muted = true;
+   305→        setIsMuted(true);
+   306→        storeSetMuted(true);
+   307→      } else if (video.muted) {
+   308→        video.muted = false;
+   309→        setIsMuted(false);
+   310→        storeSetMuted(false);
+   311→      }
+   312→    },
+   313→    [storeSetVolume, storeSetMuted]
+   314→  );
+   315→
+   316→  // ---------------------------------------------------------------------------
+   317→  // Fullscreen
+   318→  // ---------------------------------------------------------------------------
+   319→
+   320→  const toggleFullscreen = useCallback(async () => {
+   321→    const container = containerRef.current;
+   322→    if (!container) return;
+   323→
+   324→    try {
+   325→      if (!document.fullscreenElement) {
+   326→        await container.requestFullscreen();
+   327→      } else {
+   328→        await document.exitFullscreen();
+   329→      }
+   330→    } catch {
+   331→      // Fullscreen not supported or denied
+   332→    }
+   333→  }, []);
+   334→
+   335→  useEffect(() => {
+   336→    const handleFsChange = () => {
+   337→      const fs = !!document.fullscreenElement;
+   338→      setIsFullscreen(fs);
+   339→      storeSetFullscreen(fs);
+   340→    };
+   341→
+   342→    document.addEventListener("fullscreenchange", handleFsChange);
+   343→    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+   344→  }, [storeSetFullscreen]);
+   345→
+   346→  // ---------------------------------------------------------------------------
+   347→  // Controls visibility (fade in/out)
+   348→  // ---------------------------------------------------------------------------
+   349→
+   350→  const handleMouseMove = useCallback(() => {
+   351→    startHideTimer();
+   352→  }, [startHideTimer]);
+   353→
+   354→  const handleMouseLeave = useCallback(() => {
+   355→    if (isPlaying) {
+   356→      hideControlsTimerRef.current = setTimeout(() => {
+   357→        setShowControls(false);
+   358→      }, 1000);
+   359→    }
+   360→  }, [isPlaying]);
+   361→
+   362→  // Clean up timer on unmount
+   363→  useEffect(() => {
+   364→    return () => {
+   365→      if (hideControlsTimerRef.current) {
+   366→        clearTimeout(hideControlsTimerRef.current);
+   367→      }
+   368→    };
+   369→  }, []);
+   370→
+   371→  // ---------------------------------------------------------------------------
+   372→  // Keyboard shortcuts
+   373→  // ---------------------------------------------------------------------------
+   374→
+   375→  useEffect(() => {
+   376→    const handleKeyDown = (e: KeyboardEvent) => {
+   377→      const video = videoRef.current;
+   378→      if (!video) return;
+   379→
+   380→      switch (e.key) {
+   381→        case " ":
+   382→        case "k":
+   383→          e.preventDefault();
+   384→          togglePlay();
+   385→          break;
+   386→        case "ArrowLeft":
+   387→          e.preventDefault();
+   388→          video.currentTime = Math.max(0, video.currentTime - 10);
+   389→          break;
+   390→        case "ArrowRight":
+   391→          e.preventDefault();
+   392→          video.currentTime = Math.min(duration, video.currentTime + 10);
+   393→          break;
+   394→        case "ArrowUp":
+   395→          e.preventDefault();
+   396→          video.volume = Math.min(1, video.volume + 0.1);
+   397→          setVolumeLocal(video.volume);
+   398→          storeSetVolume(video.volume);
+   399→          break;
+   400→        case "ArrowDown":
+   401→          e.preventDefault();
+   402→          video.volume = Math.max(0, video.volume - 0.1);
+   403→          setVolumeLocal(video.volume);
+   404→          storeSetVolume(video.volume);
+   405→          break;
+   406→        case "f":
+   407→          e.preventDefault();
+   408→          toggleFullscreen();
+   409→          break;
+   410→        case "m":
+   411→          e.preventDefault();
+   412→          toggleMute();
+   413→          break;
+   414→        case "Escape":
+   415→          if (showEpisodeList) {
+   416→            setShowEpisodeList(false);
+   417→          }
+   418→          break;
+   419→      }
+   420→    };
+   421→
+   422→    window.addEventListener("keydown", handleKeyDown);
+   423→    return () => window.removeEventListener("keydown", handleKeyDown);
+   424→  }, [
+   425→    togglePlay,
+   426→    toggleFullscreen,
+   427→    toggleMute,
+   428→    duration,
+   429→    showEpisodeList,
+   430→    storeSetVolume,
+   431→  ]);
+   432→
+   433→  // ---------------------------------------------------------------------------
+   434→  // Episode navigation
+   435→  // ---------------------------------------------------------------------------
+   436→
+   437→  const goToEpisode = useCallback(
+   438→    (ep: Episode) => {
+   439→      if (ep.id === episode.id) return;
+   440→      router.push(`/watch/${content.id}/${ep.id}`);
+   441→    },
+   442→    [router, content.id, episode.id]
+   443→  );
+   444→
+   445→  // ---------------------------------------------------------------------------
+   446→  // Progress calculation
+   447→  // ---------------------------------------------------------------------------
+   448→
+   449→  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+   450→
+   451→  // ---------------------------------------------------------------------------
+   452→  // Render
+   453→  // ---------------------------------------------------------------------------
+   454→
+   455→  return (
+   456→    <div
+   457→      ref={containerRef}
+   458→      className="fixed inset-0 z-50 bg-black flex"
+   459→      onMouseMove={handleMouseMove}
+   460→      onMouseLeave={handleMouseLeave}
+   461→    >
+   462→      {/* Video Element or VidAPI iframe */}
+   463→      <div className="flex-1 relative">
+   464→        {isVidapiEmbed && !isLocked ? (
+   465→          <iframe
+   466→            src={videoUrl}
+   467→            className="w-full h-full border-0"
+   468→            allowFullScreen
+   469→            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+   470→            referrerPolicy="no-referrer"
+   471→          />
+   472→        ) : (
+   473→          <video
+   474→            ref={videoRef}
+   475→            className="w-full h-full object-contain bg-black cursor-pointer"
+   476→            onTimeUpdate={handleTimeUpdate}
+   477→            onLoadedMetadata={handleLoadedMetadata}
+   478→            onPlay={handlePlay}
+   479→            onPause={handlePause}
+   480→            onWaiting={handleWaiting}
+   481→            onCanPlay={handleCanPlay}
+   482→            onEnded={handleEnded}
+   483→            onClick={togglePlay}
+   484→            playsInline
+   485→            preload="metadata"
+   486→          />
+   487→        )}
+   488→
+   489→        {/* Buffering spinner */}
+   490→        {isBuffering && isPlaying && (
+   491→          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+   492→            <Loader2 className="w-12 h-12 text-white/80 animate-spin" />
+   493→          </div>
+   494→        )}
+   495→
+   496→        {/* Premium Lock Overlay */}
+   497→        {isLocked && (
+   498→          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-30">
+   499→            <div className="flex flex-col items-center gap-4 text-center px-6">
+   500→              <div className="w-20 h-20 rounded-full bg-cinema-gold/20 flex items-center justify-center">
+   501→                <Lock className="w-10 h-10 text-cinema-gold" />
+   502→              </div>
+   503→              <h2 className="text-2xl font-bold text-white">
+   504→                Premium Episode
+   505→              </h2>
+   506→              <p className="text-muted-foreground max-w-md">
+   507→                This episode requires an active subscription. Subscribe now to
+   508→                unlock all premium content.
+   509→              </p>
+   510→              {isAuthenticated ? (
+   511→                <Link
+   512→                  href="/profile/subscription"
+   513→                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold transition-colors shadow-lg shadow-cinema-gold/20"
+   514→                >
+   515→                  <Crown className="w-5 h-5" />
+   516→                  Subscribe to Watch
+   517→                </Link>
+   518→              ) : (
+   519→                <Link
+   520→                  href="/auth/login"
+   521→                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold transition-colors shadow-lg shadow-cinema-gold/20"
+   522→                >
+   523→                  <Crown className="w-5 h-5" />
+   524→                  Sign In to Subscribe
+   525→                </Link>
+   526→              )}
+   527→            </div>
+   528→          </div>
+   529→        )}
+   530→
+   531→        {/* ================================================================
+   532→            CONTROLS OVERLAY (hidden for vidapi — it has its own)
+   533→            ================================================================ */}
+   534→
+   535→        {/* Top bar — title + back + episode list toggle */}
+   536→        <div
+   537→          className={`absolute top-0 left-0 right-0 z-20 transition-opacity duration-300 ${
+   538→            isVidapiEmbed
+   539→              ? "opacity-100"
+   540→              : (showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none")
+   541→          }`}
+   542→        >
+   543→          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-transparent" />
+   544→          <div className="relative flex items-center justify-between px-4 py-4 md:px-8 md:py-6">
+   545→            <div className="flex items-center gap-3 min-w-0">
+   546→              {/* Back button */}
+   547→              <Link
+   548→                href={`/watch/${content.id}`}
+   549→                className="flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+   550→              >
+   551→                <ArrowLeft className="w-5 h-5" />
+   552→              </Link>
+   553→
+   554→              {/* Episode info */}
+   555→              <div className="min-w-0">
+   556→                <p className="text-xs text-white/60 truncate">
+   557→                  {content.title}
+   558→                </p>
+   559→                <h1 className="text-sm sm:text-base md:text-lg font-semibold text-white truncate">
+   560→                  E{episode.episode_number}
+   561→                  {episode.title ? ` · ${episode.title}` : ""}
+   562→                </h1>
+   563→              </div>
+   564→            </div>
+   565→
+   566→            {/* Episode list toggle */}
+   567→            <button
+   568→              onClick={() => setShowEpisodeList((v) => !v)}
+   569→              className={`flex-shrink-0 p-2.5 rounded-xl transition-colors ${
+   570→                showEpisodeList
+   571→                  ? "bg-cinema-red text-white"
+   572→                  : "bg-white/10 hover:bg-white/20 text-white"
+   573→              }`}
+   574→              aria-label="Toggle episode list"
+   575→            >
+   576→              {showEpisodeList ? (
+   577→                <X className="w-5 h-5" />
+   578→              ) : (
+   579→                <List className="w-5 h-5" />
+   580→              )}
+   581→            </button>
+   582→          </div>
+   583→        </div>
+   584→
+   585→        {/* Center — big play/pause button */}
+   586→        {!isPlaying && !isLocked && (
+   587→          <button
+   588→            onClick={togglePlay}
+   589→            className="absolute inset-0 z-10 flex items-center justify-center group"
+   590→            aria-label={isPlaying ? "Pause" : "Play"}
+   591→          >
+   592→            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-cinema-red/90 hover:bg-cinema-red flex items-center justify-center transition-all group-hover:scale-110 glow-red">
+   593→              <Play className="w-7 h-7 sm:w-8 sm:h-8 text-white ml-1" />
+   594→            </div>
+   595→          </button>
+   596→        )}
+   597→
+   598→        {/* Bottom controls bar (hidden for vidapi — it has its own) */}
+   599→        {!isVidapiEmbed && (
+   600→        <div
+   601→          className={`absolute bottom-0 left-0 right-0 z-20 transition-opacity duration-300 ${
+   602→            showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
+   603→          }`}
+   604→        >
+   605→          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+   606→
+   607→          <div className="relative px-4 pb-4 md:px-8 md:pb-6 space-y-2">
+   608→            {/* Seek bar */}
+   609→            <div
+   610→              className="group relative h-1.5 cursor-pointer"
+   611→              onClick={handleSeek}
+   612→              onMouseMove={handleSeekHover}
+   613→              onMouseLeave={handleSeekLeave}
+   614→            >
+   615→              {/* Track background */}
+   616→              <div className="absolute inset-0 rounded-full bg-white/20" />
+   617→              {/* Progress */}
+   618→              <div
+   619→                className="absolute inset-y-0 left-0 rounded-full bg-cinema-red transition-[width] duration-100"
+   620→                style={{ width: `${progressPercent}%` }}
+   621→              />
+   622→              {/* Hover preview line */}
+   623→              {seekProgress !== null && (
+   624→                <div
+   625→                  className="absolute inset-y-0 left-0 bg-white/40 rounded-full transition-[width] duration-75"
+   626→                  style={{ width: `${seekProgress}%` }}
+   627→                />
+   628→              )}
+   629→              {/* Scrubber dot */}
+   630→              <div
+   631→                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-cinema-red opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+   632→                style={{ left: `calc(${progressPercent}% - 7px)` }}
+   633→              />
+   634→            </div>
+   635→
+   636→            {/* Controls row */}
+   637→            <div className="flex items-center gap-2 md:gap-4">
+   638→              {/* Play/Pause */}
+   639→              <button
+   640→                onClick={togglePlay}
+   641→                className="p-1.5 text-white hover:text-cinema-red transition-colors"
+   642→                aria-label={isPlaying ? "Pause" : "Play"}
+   643→              >
+   644→                {isPlaying ? (
+   645→                  <Pause className="w-5 h-5 md:w-6 md:h-6" />
+   646→                ) : (
+   647→                  <Play className="w-5 h-5 md:w-6 md:h-6" />
+   648→                )}
+   649→              </button>
+   650→
+   651→              {/* Previous episode */}
+   652→              {prevEpisode && (
+   653→                <button
+   654→                  onClick={() => goToEpisode(prevEpisode)}
+   655→                  className="p-1.5 text-white/70 hover:text-white transition-colors"
+   656→                  aria-label="Previous episode"
+   657→                >
+   658→                  <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+   659→                </button>
+   660→              )}
+   661→
+   662→              {/* Next episode */}
+   663→              {nextEpisode && (
+   664→                <button
+   665→                  onClick={() => goToEpisode(nextEpisode)}
+   666→                  className="p-1.5 text-white/70 hover:text-white transition-colors"
+   667→                  aria-label="Next episode"
+   668→                >
+   669→                  <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+   670→                </button>
+   671→              )}
+   672→
+   673→              {/* Time display */}
+   674→              <span className="text-xs md:text-sm text-white/80 font-mono tabular-nums select-none">
+   675→                {formatTime(currentTime)} / {formatTime(duration)}
+   676→              </span>
+   677→
+   678→              {/* Spacer */}
+   679→              <div className="flex-1" />
+   680→
+   681→              {/* Volume control */}
+   682→              <div className="flex items-center gap-1.5 group/vol">
+   683→                <button
+   684→                  onClick={toggleMute}
+   685→                  className="p-1.5 text-white/80 hover:text-white transition-colors"
+   686→                  aria-label={isMuted ? "Unmute" : "Mute"}
+   687→                >
+   688→                  {isMuted || volume === 0 ? (
+   689→                    <VolumeX className="w-5 h-5" />
+   690→                  ) : (
+   691→                    <Volume2 className="w-5 h-5" />
+   692→                  )}
+   693→                </button>
+   694→                <input
+   695→                  type="range"
+   696→                  min="0"
+   697→                  max="1"
+   698→                  step="0.05"
+   699→                  value={isMuted ? 0 : volume}
+   700→                  onChange={handleVolumeChange}
+   701→                  className="w-0 group-hover/vol:w-20 md:w-0 md:group-hover/vol:w-24 transition-all duration-200 accent-cinema-red h-1 cursor-pointer"
+   702→                  aria-label="Volume"
+   703→                />
+   704→              </div>
+   705→
+   706→              {/* Fullscreen toggle */}
+   707→              <button
+   708→                onClick={toggleFullscreen}
+   709→                className="p-1.5 text-white/80 hover:text-white transition-colors"
+   710→                aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+   711→              >
+   712→                {isFullscreen ? (
+   713→                  <Minimize className="w-5 h-5" />
+   714→                ) : (
+   715→                  <Maximize className="w-5 h-5" />
+   716→                )}
+   717→              </button>
+   718→            </div>
+   719→          </div>
+   720→        </div>
+   721→        )}
+   722→        {/* End bottom controls */}
+   723→      </div>
+   724→      {/* End flex-1 relative */}
+   725→
+   726→      {/* ================================================================
+   727→          EPISODE LIST SIDEBAR
+   728→          ================================================================ */}
+   729→      <div
+   730→        className={`absolute top-0 right-0 h-full z-30 transition-transform duration-300 ease-in-out ${
+   731→          showEpisodeList ? "translate-x-0" : "translate-x-full"
+   732→        }`}
+   733→        style={{ width: "min(380px, 85vw)" }}
+   734→      >
+   735→        {/* Backdrop */}
+   736→        {showEpisodeList && (
+   737→          <div
+   738→            className="absolute inset-0 -left-[100vw] w-[200vw] h-full bg-black/40 -z-10"
+   739→            onClick={() => setShowEpisodeList(false)}
+   740→          />
+   741→        )}
+   742→
+   743→        <div className="h-full bg-cinema-bg border-l border-white/[0.06] flex flex-col">
+   744→          {/* Header */}
+   745→          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+   746→            <h2 className="text-[13px] font-semibold text-foreground truncate">
+   747→              Episodes
+   748→              <span className="text-muted-foreground font-normal ml-1.5">
+   749→                {episodes.length}
+   750→              </span>
+   751→            </h2>
+   752→            <button
+   753→              onClick={() => setShowEpisodeList(false)}
+   754→              className="p-2 rounded-xl hover:bg-cinema-surface text-muted-foreground hover:text-foreground transition-colors"
+   755→              aria-label="Close episode list"
+   756→            >
+   757→              <X className="w-4 h-4" />
+   758→            </button>
+   759→          </div>
+   760→
+   761→          {/* Episode list */}
+   762→          <ScrollArea className="flex-1">
+   763→            <div className="p-2 space-y-1">
+   764→              {episodes.map((ep) => {
+   765→                const isActive = ep.id === episode.id;
+   766→                const epLocked =
+   767→                  ep.is_locked && !isSubscriber && !ep.is_free_trial;
+   768→
+   769→                return (
+   770→                  <button
+   771→                    key={ep.id}
+   772→                    onClick={() => {
+   773→                      if (epLocked) return;
+   774→                      goToEpisode(ep);
+   775→                    }}
+   776→                    disabled={epLocked}
+   777→                    className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors group ${
+   778→                      isActive
+   779→                        ? "bg-cinema-red/15 border border-cinema-red/30"
+   780→                        : epLocked
+   781→                          ? "opacity-60 cursor-not-allowed"
+   782→                          : "hover:bg-cinema-surface border border-transparent"
+   783→                    }`}
+   784→                  >
+   785→                    {/* Thumbnail */}
+   786→                    <div className="relative flex-shrink-0 w-[130px] aspect-video rounded-lg overflow-hidden bg-cinema-surface">
+   787→                      {ep.thumbnail_url ? (
+   788→                        <img
+   789→                          src={ep.thumbnail_url}
+   790→                          alt=""
+   791→                          className="w-full h-full object-cover"
+   792→                        />
+   793→                      ) : (
+   794→                        <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
+   795→                          <Play className="w-5 h-5" />
+   796→                        </div>
+   797→                      )}
+   798→                      {/* Runtime badge */}
+   799→                      {ep.runtime_seconds && (
+   800→                        <span className="absolute bottom-1 right-1 text-[10px] font-medium text-white bg-black/70 px-1.5 py-0.5 rounded">
+   801→                          {formatTime(ep.runtime_seconds)}
+   802→                        </span>
+   803→                      )}
+   804→                      {/* Playing indicator */}
+   805→                      {isActive && isPlaying && (
+   806→                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+   807→                          <div className="flex items-center gap-0.5">
+   808→                            <span className="w-0.5 h-3 bg-cinema-red rounded-full animate-pulse" />
+   809→                            <span className="w-0.5 h-4 bg-cinema-red rounded-full animate-pulse [animation-delay:0.15s]" />
+   810→                            <span className="w-0.5 h-2 bg-cinema-red rounded-full animate-pulse [animation-delay:0.3s]" />
+   811→                          </div>
+   812→                        </div>
+   813→                      )}
+   814→                      {/* Lock icon */}
+   815→                      {epLocked && (
+   816→                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+   817→                          <Lock className="w-4 h-4 text-cinema-gold" />
+   818→                        </div>
+   819→                      )}
+   820→                    </div>
+   821→
+   822→                    {/* Info */}
+   823→                    <div className="flex-1 min-w-0 pt-0.5">
+   824→                      <div className="flex items-center gap-2">
+   825→                        <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
+   826→                          E{ep.episode_number}
+   827→                        </span>
+   828→                        {ep.is_free_trial && !ep.is_locked && (
+   829→                          <span className="text-[10px] font-semibold text-cinema-gold bg-cinema-gold/10 px-1.5 py-0.5 rounded">
+   830→                            FREE
+   831→                          </span>
+   832→                        )}
+   833→                      </div>
+   834→                      <p
+   835→                        className={`text-sm font-medium mt-0.5 truncate ${
+   836→                          isActive ? "text-cinema-red" : "text-foreground"
+   837→                        }`}
+   838→                      >
+   839→                        {ep.title || `Episode ${ep.episode_number}`}
+   840→                      </p>
+   841→                      {ep.synopsis && (
+   842→                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+   843→                          {ep.synopsis}
+   844→                        </p>
+   845→                      )}
+   846→                    </div>
+   847→                  </button>
+   848→                );
+   849→              })}
+   850→            </div>
+   851→          </ScrollArea>
+   852→        </div>
+   853→      </div>
+   854→    </div>
+   855→  );
+   856→}

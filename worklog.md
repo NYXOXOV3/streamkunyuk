@@ -105,4 +105,27 @@ Stage Summary:
 - Admin panel polished: sidebar tooltips, consistent rounded corners, cleaner header
 - Carousel sections improved: tighter spacing, arrow indicators
 - All 9 key pages verified returning 200 status
-- Consistent design language: rounded-xl cards, rounded-lg inputs/buttons, rounded-full pills
+- Consistent design language: rounded-xl cards, rounded-lg inputs/buttons, rounded-full pills---
+Task ID: 1
+Agent: main
+Task: Audit VidAPI player documentation, update URL builders, store config in DB, test import TV 230311
+
+Work Log:
+- Read all relevant files: tmdb.ts, content-actions.ts, PlayerClient.tsx, EpisodeGrid.tsx, types.ts, playerStore.ts
+- Verified playerStore uses plain Zustand (no persist/localStorage)
+- Verified Supabase client localStorage usage is auth-only (standard)
+- Updated tmdb.ts: Added VidapiPlayerConfig interface, DEFAULT_VIDAPI_CONFIG constant, vidapiParams() serializer, updated all buildVidapi* functions to accept optional config parameter
+- Updated content-actions.ts: Store vidapi config JSON in contents.external_url column for DB persistence
+- Updated PlayerClient.tsx: Added sandbox attribute to vidapi iframe for security
+- Built project successfully with no errors
+- Tested import of TV show TMDB ID 230311 ("Love Has Fireworks") - SUCCESS
+- Verified: 1 season, 36 episodes imported with all 9 vidapi params per URL
+- Verified: external_url column contains full player config JSON
+- Verified: No player config stored in localStorage anywhere
+
+Stage Summary:
+- VidAPI URL builder now supports all documented parameters (primaryColor, secondaryColor, iconColor, icons, title, poster, autoplay, nextbutton, player, startAt, sub_file, fallback_url)
+- Default config: primaryColor=8B1A1A, secondaryColor=1A1A2E, iconColor=2ECC71, icons=default, title=true, poster=true, autoplay=true, nextbutton=true, player=nf
+- All player config stored in Supabase DB (episodes.video_url = full URL, contents.external_url = JSON config)
+- Zero localStorage usage for player/video configuration
+- TV 230311 imported successfully: 36 episodes, 1 season, all URLs verified

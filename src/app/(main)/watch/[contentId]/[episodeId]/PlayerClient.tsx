@@ -468,6 +468,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
             allowFullScreen
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             referrerPolicy="no-referrer"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
           />
         ) : (
           <video

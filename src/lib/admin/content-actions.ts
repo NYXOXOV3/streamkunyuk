@@ -160,6 +160,15 @@ export async function importFromTmdb(params: {
     // Build vidapi URL for the content itself
     const vidapiContentUrl = buildVidapiUrl(parsed.tmdb_id, params.type);
 
+    // Store vidapi player config as JSON in external_url for safe DB persistence
+    // This ensures all player settings survive re-imports and can be modified later
+    const { DEFAULT_VIDAPI_CONFIG } = await import("@/lib/api/tmdb");
+    const vidapiConfigJson = JSON.stringify({
+      ...DEFAULT_VIDAPI_CONFIG,
+      tmdbId: parsed.tmdb_id,
+      type: params.type,
+    });
+
     const { data, error } = await supabase
       .from("contents")
       .insert({
@@ -179,6 +188,7 @@ export async function importFromTmdb(params: {
         free_trial_episodes: 0,
         provider_source_id: provider?.id || null,
         trailer_url: vidapiContentUrl,
+        external_url: vidapiConfigJson,
         slug: parsed.title
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")

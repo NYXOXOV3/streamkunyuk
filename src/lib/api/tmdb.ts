@@ -299,11 +299,91 @@ export function parseTmdbToContentType(
 // ---------------------------------------------------------------------------
 
 /**
- * Build vidapi.qzz.io embed URL for a movie.
- * Colors match the StreamVault cinema dark theme.
+ * VidAPI player configuration stored in DB per-content.
+ * These are the default values used when importing from TMDB.
+ *
+ * All config is saved to the `contents.trailer_url` (reference URL) and
+ * `episodes.video_url` (actual embed URL) columns in Supabase.
+ * NOTHING is stored in localStorage.
+ *
+ * VidAPI docs: https://vidapi.qzz.io/
+ *   - Movie:  https://vidapi.qzz.io/movie/{tmdbId}
+ *   - TV:     https://vidapi.qzz.io/tv/{tmdbId}/{season}/{episode}
+ *
+ * Supported params:
+ *   primaryColor   - slider/autoplay color (hex without #)
+ *   secondaryColor - progress bar behind slider (hex without #)
+ *   iconColor      - icon color (hex without #)
+ *   icons          - "vid" or "default"
+ *   title          - show media title (true/false)
+ *   poster         - show poster image (true/false)
+ *   autoplay       - auto-start playback (true/false)
+ *   nextbutton     - show next episode button at 90% (true/false)
+ *   player         - "plus" (Netflix/VideoJS Plus) or default
+ *   startAt        - start time in seconds
+ *   sub_file       - external subtitle VTT URL
+ *   fallback_url   - redirect URL when stream fails
  */
-export function buildVidapiMovieUrl(tmdbId: number): string {
-  return `https://vidapi.qzz.io/movie/${tmdbId}?primaryColor=8B1A1A&secondaryColor=1A1A2E&iconColor=2ECC71&icons=default&player=nf&title=true&poster=true&autoplay=true&nextbutton=true`;
+
+export interface VidapiPlayerConfig {
+  primaryColor?: string;
+  secondaryColor?: string;
+  iconColor?: string;
+  icons?: "vid" | "default";
+  title?: boolean;
+  poster?: boolean;
+  autoplay?: boolean;
+  nextbutton?: boolean;
+  player?: string;
+  startAt?: number;
+  sub_file?: string;
+  fallback_url?: string;
+}
+
+/**
+ * Default player config matching StreamVault cinema dark theme.
+ */
+export const DEFAULT_VIDAPI_CONFIG: VidapiPlayerConfig = {
+  primaryColor: "8B1A1A",
+  secondaryColor: "1A1A2E",
+  iconColor: "2ECC71",
+  icons: "default",
+  title: true,
+  poster: true,
+  autoplay: true,
+  nextbutton: true,
+  player: "nf",
+};
+
+/**
+ * Serialize a VidapiPlayerConfig into URL query parameters.
+ */
+function vidapiParams(config?: VidapiPlayerConfig): string {
+  const c = { ...DEFAULT_VIDAPI_CONFIG, ...config };
+  const params = new URLSearchParams();
+  if (c.primaryColor) params.set("primaryColor", c.primaryColor);
+  if (c.secondaryColor) params.set("secondaryColor", c.secondaryColor);
+  if (c.iconColor) params.set("iconColor", c.iconColor);
+  if (c.icons) params.set("icons", c.icons);
+  if (c.title !== undefined) params.set("title", String(c.title));
+  if (c.poster !== undefined) params.set("poster", String(c.poster));
+  if (c.autoplay !== undefined) params.set("autoplay", String(c.autoplay));
+  if (c.nextbutton !== undefined) params.set("nextbutton", String(c.nextbutton));
+  if (c.player) params.set("player", c.player);
+  if (c.startAt !== undefined && c.startAt > 0) params.set("startAt", String(c.startAt));
+  if (c.sub_file) params.set("sub_file", c.sub_file);
+  if (c.fallback_url) params.set("fallback_url", c.fallback_url);
+  return params.toString();
+}
+
+/**
+ * Build vidapi.qzz.io embed URL for a movie.
+ */
+export function buildVidapiMovieUrl(
+  tmdbId: number,
+  config?: VidapiPlayerConfig,
+): string {
+  return `https://vidapi.qzz.io/movie/${tmdbId}?${vidapiParams(config)}`;
 }
 
 /**
@@ -313,8 +393,9 @@ export function buildVidapiTvUrl(
   tmdbId: number,
   season: number,
   episode: number,
+  config?: VidapiPlayerConfig,
 ): string {
-  return `https://vidapi.qzz.io/tv/${tmdbId}/${season}/${episode}?primaryColor=8B1A1A&secondaryColor=1A1A2E&iconColor=2ECC71&icons=default&player=nf&title=true&poster=true&autoplay=true&nextbutton=true`;
+  return `https://vidapi.qzz.io/tv/${tmdbId}/${season}/${episode}?${vidapiParams(config)}`;
 }
 
 /**
@@ -325,7 +406,8 @@ export function buildVidapiUrl(
   type: "movie" | "tv",
   season?: number,
   episode?: number,
+  config?: VidapiPlayerConfig,
 ): string {
-  if (type === "movie") return buildVidapiMovieUrl(tmdbId);
-  return buildVidapiTvUrl(tmdbId, season ?? 1, episode ?? 1);
+  if (type === "movie") return buildVidapiMovieUrl(tmdbId, config);
+  return buildVidapiTvUrl(tmdbId, season ?? 1, episode ?? 1, config);
 }
