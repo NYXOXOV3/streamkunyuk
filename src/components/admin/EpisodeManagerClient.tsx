@@ -52,7 +52,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import type { Episode, ContentType } from "@/lib/supabase/types";
 import {
+  Plus,
+  Pencil,
+  Trash2,
+  Lock,
+  Unlock,
+  Gift,
+  Video,
+  Loader2,
+  ExternalLink,
+  Link2,
+  AlertCircle,
+  Save,
+  ListVideo,
+  ShieldCheck,
+  ShieldX,
+  ArrowLeft,
+  Clock,
+  Image,
+} from "lucide-react";
+
 // Fetch-based API helpers — no server actions
 async function apiGetEpisodes(contentId: string) {
   const res = await fetch(`/api/admin/episodes?contentId=${contentId}`);
@@ -100,27 +121,6 @@ async function apiBulkUpdate(contentId: string, updates: { is_locked?: boolean; 
   });
   return res.json();
 }
-import type { Episode, ContentType } from "@/lib/supabase/types";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Lock,
-  Unlock,
-  Gift,
-  Video,
-  Loader2,
-  ExternalLink,
-  Link2,
-  AlertCircle,
-  Save,
-  ListVideo,
-  ShieldCheck,
-  ShieldX,
-  ArrowLeft,
-  Clock,
-  Image,
-} from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Constants

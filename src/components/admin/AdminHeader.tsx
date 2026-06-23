@@ -21,7 +21,7 @@ export function AdminHeader({ title }: { title?: string }) {
   }
 
   return (
-    <header className="h-14 bg-cinema-surface/60 backdrop-blur-xl border-b border-cinema-border/50 flex items-center justify-between px-4 md:px-6 shrink-0 gap-2">
+    <header className="h-[68px] bg-cinema-bg/70 backdrop-blur-2xl border-b border-white/[0.06] flex items-center justify-between px-4 md:px-6 shrink-0 gap-2">
       <div className="flex items-center gap-2 min-w-0">
         {/* Mobile hamburger */}
         <AdminMobileNav />
@@ -40,7 +40,7 @@ export function AdminHeader({ title }: { title?: string }) {
         </Button>
 
         {title && (
-          <h1 className="text-base font-semibold text-foreground truncate">
+          <h1 className="text-[15px] font-semibold text-foreground truncate">
             {title}
           </h1>
         )}
@@ -58,7 +58,7 @@ export function AdminHeader({ title }: { title?: string }) {
           variant="ghost"
           size="icon"
           onClick={handleSignOut}
-          className="border-cinema-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 w-9 rounded-full"
+          className="border-cinema-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-10 w-10 rounded-xl"
           aria-label="Sign out"
         >
           <LogOut className="w-4 h-4" />

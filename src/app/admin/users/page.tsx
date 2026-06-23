@@ -49,7 +49,7 @@ export default function UsersPage() {
     <>
       <AdminHeader title="User Management" />
 
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+      <div className="flex-1 p-8 space-y-4 overflow-y-auto">
         {/* Actions bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
@@ -59,7 +59,7 @@ export default function UsersPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search users..."
-                className="h-9 pl-9 w-56 bg-cinema-elevated border-cinema-border text-sm"
+                className="h-10 rounded-xl pl-9 w-64 bg-cinema-elevated border-cinema-border text-sm"
               />
             </div>
           </div>
@@ -73,21 +73,21 @@ export default function UsersPage() {
         )}
 
         {/* Table */}
-        <Card className="bg-cinema-surface border-cinema-border">
+        <Card className="bg-cinema-surface border-cinema-border rounded-2xl overflow-hidden">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="border-cinema-border hover:bg-transparent">
-                  <TableHead className="text-xs text-muted-foreground">
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em]">
                     User
                   </TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-28">
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-28">
                     Role
                   </TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-40">
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-40">
                     Subscription
                   </TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-32">
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-32">
                     Joined
                   </TableHead>
                 </TableRow>
@@ -98,21 +98,21 @@ export default function UsersPage() {
                     <TableRow key={i} className="border-cinema-border">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
+                          <Skeleton className="w-8 h-8 rounded-full rounded-lg" />
                           <div className="space-y-1.5">
-                            <Skeleton className="h-4 w-28" />
-                            <Skeleton className="h-3 w-20" />
+                            <Skeleton className="h-4 w-28 rounded-lg" />
+                            <Skeleton className="h-3 w-20 rounded-lg" />
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-5 w-14" />
+                        <Skeleton className="h-5 w-14 rounded-lg" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-5 w-20 rounded-lg" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-24 rounded-lg" />
                       </TableCell>
                     </TableRow>
                   ))
@@ -129,7 +129,7 @@ export default function UsersPage() {
                     return (
                       <TableRow
                         key={user.id}
-                        className="border-cinema-border hover:bg-accent/50"
+                        className="border-cinema-border hover:bg-white/[0.02]"
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -137,10 +137,10 @@ export default function UsersPage() {
                               <img
                                 src={user.avatar_url}
                                 alt=""
-                                className="w-8 h-8 rounded-full object-cover bg-cinema-elevated"
+                                className="w-9 h-9 rounded-full object-cover bg-cinema-elevated"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-cinema-elevated flex items-center justify-center">
+                              <div className="w-9 h-9 rounded-full bg-cinema-elevated flex items-center justify-center">
                                 <User className="w-4 h-4 text-muted-foreground" />
                               </div>
                             )}
@@ -158,7 +158,7 @@ export default function UsersPage() {
                           {user.is_admin ? (
                             <Badge
                               variant="outline"
-                              className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/30 rounded-lg"
                             >
                               <ShieldCheck className="w-3 h-3 mr-1" />
                               Admin
@@ -166,7 +166,7 @@ export default function UsersPage() {
                           ) : (
                             <Badge
                               variant="outline"
-                              className="text-[10px] border-cinema-border text-muted-foreground"
+                              className="text-[10px] border-cinema-border text-muted-foreground rounded-lg"
                             >
                               User
                             </Badge>
@@ -177,7 +177,7 @@ export default function UsersPage() {
                             <div className="flex flex-col gap-0.5">
                               <Badge
                                 variant="outline"
-                                className="text-[10px] w-fit border-emerald-600/50 text-emerald-400"
+                                className="text-[10px] w-fit border-emerald-600/50 text-emerald-400 rounded-lg"
                               >
                                 Active
                               </Badge>
@@ -188,7 +188,7 @@ export default function UsersPage() {
                           ) : (
                             <Badge
                               variant="outline"
-                              className="text-[10px] border-cinema-border text-muted-foreground"
+                              className="text-[10px] border-cinema-border text-muted-foreground rounded-lg"
                             >
                               Free
                             </Badge>
@@ -215,7 +215,7 @@ export default function UsersPage() {
 
         {/* Count */}
         {!isLoading && (
-          <p className="text-xs text-muted-foreground text-right">
+          <p className="text-[11px] text-muted-foreground/50 text-right">
             {users.length} user{users.length !== 1 ? "s" : ""}
           </p>
         )}

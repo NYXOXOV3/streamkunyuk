@@ -43,7 +43,7 @@ export default async function EpisodesPage({ params }: PageProps) {
     return (
       <div className="flex-1 flex flex-col">
         <AdminHeader title="Content Not Found" />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
           <div className="w-16 h-16 rounded-full bg-cinema-elevated flex items-center justify-center">
             <AlertTriangle className="w-7 h-7 text-muted-foreground/40" />
           </div>
@@ -56,7 +56,7 @@ export default async function EpisodesPage({ params }: PageProps) {
               removed.
             </p>
           </div>
-          <Button asChild variant="outline" className="border-cinema-border text-sm mt-2">
+          <Button asChild variant="outline" className="border-cinema-border text-sm mt-2 rounded-xl">
             <Link href="/admin/content">
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Content
@@ -72,7 +72,7 @@ export default async function EpisodesPage({ params }: PageProps) {
     return (
       <div className="flex-1 flex flex-col">
         <AdminHeader title="Error" />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="w-7 h-7 text-destructive/60" />
           </div>
@@ -84,7 +84,7 @@ export default async function EpisodesPage({ params }: PageProps) {
               {fetchError}
             </p>
           </div>
-          <Button asChild variant="outline" className="border-cinema-border text-sm mt-2">
+          <Button asChild variant="outline" className="border-cinema-border text-sm mt-2 rounded-xl">
             <Link href="/admin/content">
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Content

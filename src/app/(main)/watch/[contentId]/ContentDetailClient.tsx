@@ -24,7 +24,7 @@ export default function ContentDetailClient({
 
   return (
     <div>
-      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+      <p className="text-sm sm:text-[15px] text-muted-foreground/80 leading-[1.75]">
         {!isLong || expanded
           ? synopsis
           : synopsis.slice(0, SYNOPSIS_COLLAPSE_LENGTH) + "..."}
@@ -34,7 +34,7 @@ export default function ContentDetailClient({
         <Button
           variant="ghost"
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-cinema-muted hover:text-foreground mt-2 -ml-2 h-7 px-2 gap-1"
+          className="text-[12px] text-cinema-muted hover:text-foreground mt-3 -ml-2 h-8 px-3 gap-1.5 rounded-lg"
         >
           {expanded ? (
             <>

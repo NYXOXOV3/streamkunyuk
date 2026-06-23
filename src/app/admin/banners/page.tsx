@@ -298,7 +298,7 @@ export default function BannersPage() {
     <>
       <AdminHeader title="Banner Management" />
 
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+      <div className="flex-1 p-8 space-y-5 overflow-y-auto">
         {/* Top actions */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
@@ -308,7 +308,7 @@ export default function BannersPage() {
           <Button
             onClick={openCreate}
             disabled={isTableMissing}
-            className="bg-cinema-red hover:bg-cinema-red-hover text-white gap-1.5 disabled:opacity-40"
+            className="bg-cinema-red hover:bg-cinema-red-hover text-white gap-1.5 disabled:opacity-40 rounded-xl shadow-lg shadow-cinema-red/20"
           >
             <Plus className="w-4 h-4" />
             Add Banner
@@ -317,7 +317,7 @@ export default function BannersPage() {
 
         {/* Table missing — show setup instructions */}
         {isTableMissing && (
-          <Card className="bg-cinema-surface border-amber-500/30">
+          <Card className="bg-cinema-surface border-amber-500/30 rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
             <CardContent className="py-8 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
                 <ImageIcon className="w-6 h-6 text-amber-400" />
@@ -334,7 +334,7 @@ export default function BannersPage() {
                   </code>
                 </p>
               </div>
-              <pre className="bg-cinema-bg rounded-md p-3 text-left text-[11px] text-foreground/80 max-w-lg mx-auto overflow-x-auto border border-cinema-border leading-relaxed">
+              <pre className="bg-cinema-bg rounded-xl p-3 text-left text-[11px] text-foreground/80 max-w-lg mx-auto overflow-x-auto border border-cinema-border leading-relaxed">
 {`CREATE TABLE IF NOT EXISTS public.banners (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT, subtitle TEXT,
@@ -368,7 +368,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
 
         {/* Other errors */}
         {error && !isTableMissing && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-sm text-destructive">
             Failed to load banners: {(error as Error).message}
           </div>
         )}
@@ -389,7 +389,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
         {!isLoading && !error && (
           <div className="space-y-3">
             {banners.length === 0 ? (
-              <Card className="bg-cinema-surface border-cinema-border">
+              <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
                 <CardContent className="flex flex-col items-center justify-center py-16">
                   <ImageIcon className="w-10 h-10 text-muted-foreground/30 mb-3" />
                   <p className="text-sm text-muted-foreground mb-1">
@@ -406,17 +406,17 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                 return (
                   <Card
                     key={banner.id}
-                    className="bg-cinema-surface border-cinema-border overflow-hidden"
+                    className="bg-cinema-surface border-cinema-border overflow-hidden rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
                   >
                     <CardContent className="p-0">
                       <div className="flex items-stretch">
                         {/* Thumbnail */}
-                        <div className="w-48 shrink-0 bg-cinema-elevated relative overflow-hidden">
+                        <div className="w-48 shrink-0 bg-cinema-elevated relative overflow-hidden rounded-xl">
                           {imgUrl ? (
                             <img
                               src={imgUrl}
                               alt=""
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover rounded-xl"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -425,7 +425,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                           )}
                           {/* Type badge */}
                           <Badge
-                            className="absolute top-2 left-2 text-[10px] border-none gap-0.5"
+                            className="absolute top-2 left-2 text-[10px] border-none gap-0.5 rounded-lg"
                             variant={
                               banner.banner_type === "content"
                                 ? "default"
@@ -453,20 +453,20 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                         <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-sm font-semibold text-foreground truncate">
+                              <h3 className="text-[15px] font-semibold text-foreground truncate">
                                 {banner.title || getContentTitle(banner)}
                               </h3>
                               {banner.is_active ? (
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] border-emerald-600/50 text-emerald-400 shrink-0"
+                                  className="text-[10px] border-emerald-600/50 text-emerald-400 shrink-0 rounded-lg"
                                 >
                                   Active
                                 </Badge>
                               ) : (
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] border-cinema-border text-muted-foreground shrink-0"
+                                  className="text-[10px] border-cinema-border text-muted-foreground shrink-0 rounded-lg"
                                 >
                                   Inactive
                                 </Badge>
@@ -508,7 +508,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-cinema-border text-xs h-7"
+                              className="border-cinema-border text-xs h-7 rounded-xl"
                               onClick={() => toggleActive(banner)}
                             >
                               {banner.is_active ? (
@@ -521,7 +521,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-cinema-border text-xs h-7"
+                              className="border-cinema-border text-xs h-7 rounded-xl"
                               onClick={() => openEdit(banner)}
                             >
                               <Pencil className="w-3.5 h-3.5 mr-1" />
@@ -530,7 +530,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-cinema-border text-xs h-7 text-destructive hover:text-destructive"
+                              className="border-cinema-border text-xs h-7 text-destructive hover:text-destructive rounded-xl"
                               onClick={() => deleteMutation.mutate(banner.id)}
                               disabled={deleteMutation.isPending}
                             >
@@ -547,7 +547,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0"
+                                className="h-7 w-7 p-0 rounded-xl"
                                 disabled={idx === 0}
                                 onClick={() => reorder(banner, "up")}
                               >
@@ -556,7 +556,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0"
+                                className="h-7 w-7 p-0 rounded-xl"
                                 disabled={idx === banners.length - 1}
                                 onClick={() => reorder(banner, "down")}
                               >
@@ -577,7 +577,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
 
       {/* ---- Create/Edit Dialog ---- */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg bg-cinema-surface border-cinema-border">
+        <DialogContent className="sm:max-w-lg bg-cinema-surface border-cinema-border rounded-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingBanner ? "Edit Banner" : "Add New Banner"}
@@ -587,7 +587,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
           <div className="space-y-4 py-2">
             {/* Banner Type */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                 Banner Type
               </label>
               <Select
@@ -599,7 +599,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                   }))
                 }
               >
-                <SelectTrigger className="bg-cinema-elevated border-cinema-border">
+                <SelectTrigger className="bg-cinema-elevated border-cinema-border h-10 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-cinema-border">
@@ -622,7 +622,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
             {/* Content selector (only for content type) */}
             {form.banner_type === "content" && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   Select Content
                 </label>
                 <Select
@@ -631,7 +631,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                     setForm((f) => ({ ...f, content_id: v }))
                   }
                 >
-                  <SelectTrigger className="bg-cinema-elevated border-cinema-border">
+                  <SelectTrigger className="bg-cinema-elevated border-cinema-border h-10 rounded-xl">
                     <SelectValue placeholder="Choose a published content..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-cinema-border max-h-60">
@@ -654,7 +654,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
             {form.banner_type === "custom" && (
               <>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
+                  <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                     Image URL
                   </label>
                   <Input
@@ -666,10 +666,10 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                       }))
                     }
                     placeholder="https://example.com/promo-banner.jpg"
-                    className="bg-cinema-elevated border-cinema-border"
+                    className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                   />
                   {form.custom_image_url && (
-                    <div className="mt-2 rounded-md overflow-hidden h-32 bg-cinema-elevated">
+                    <div className="mt-2 rounded-xl overflow-hidden h-32 bg-cinema-elevated">
                       <img
                         src={form.custom_image_url}
                         alt="Preview"
@@ -682,7 +682,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
+                  <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                     Link URL (optional)
                   </label>
                   <Input
@@ -694,7 +694,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                       }))
                     }
                     placeholder="https://example.com/promo"
-                    className="bg-cinema-elevated border-cinema-border"
+                    className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                   />
                 </div>
               </>
@@ -703,9 +703,9 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
             {/* Title & Subtitle */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   Title{" "}
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-muted-foreground text-xs normal-case tracking-normal">
                     (optional, overrides content title)
                   </span>
                 </label>
@@ -715,11 +715,11 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                     setForm((f) => ({ ...f, title: e.target.value }))
                   }
                   placeholder="Banner title"
-                  className="bg-cinema-elevated border-cinema-border"
+                  className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   Subtitle
                 </label>
                 <Input
@@ -728,7 +728,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                     setForm((f) => ({ ...f, subtitle: e.target.value }))
                   }
                   placeholder="Short description"
-                  className="bg-cinema-elevated border-cinema-border"
+                  className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                 />
               </div>
             </div>
@@ -736,7 +736,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
             {/* CTA Text & Link */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   CTA Button Text
                 </label>
                 <Input
@@ -745,11 +745,11 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                     setForm((f) => ({ ...f, cta_text: e.target.value }))
                   }
                   placeholder="Learn More"
-                  className="bg-cinema-elevated border-cinema-border"
+                  className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   CTA Link (optional)
                 </label>
                 <Input
@@ -758,7 +758,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                     setForm((f) => ({ ...f, cta_link: e.target.value }))
                   }
                   placeholder="/browse?sort=newest"
-                  className="bg-cinema-elevated border-cinema-border"
+                  className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                 />
               </div>
             </div>
@@ -766,7 +766,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
             {/* Schedule */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   Start Date (optional)
                 </label>
                 <Input
@@ -775,11 +775,11 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                   onChange={(e) =>
                     setForm((f) => ({ ...f, start_date: e.target.value }))
                   }
-                  className="bg-cinema-elevated border-cinema-border"
+                  className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">
                   End Date (optional)
                 </label>
                 <Input
@@ -788,7 +788,7 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
                   onChange={(e) =>
                     setForm((f) => ({ ...f, end_date: e.target.value }))
                   }
-                  className="bg-cinema-elevated border-cinema-border"
+                  className="bg-cinema-elevated border-cinema-border h-10 rounded-xl"
                 />
               </div>
             </div>
@@ -798,14 +798,14 @@ CREATE INDEX IF NOT EXISTS idx_banners_active
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="border-cinema-border"
+              className="border-cinema-border h-10 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className="bg-cinema-red hover:bg-cinema-red-hover text-white"
+              className="bg-cinema-red hover:bg-cinema-red-hover text-white h-10 rounded-xl"
             >
               {saveMutation.isPending && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

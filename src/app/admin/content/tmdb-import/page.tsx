@@ -69,7 +69,7 @@ function TmdbResultCard({
   isImporting: boolean;
 }) {
   return (
-    <Card className="bg-cinema-surface border-cinema-border overflow-hidden">
+    <Card className="bg-cinema-surface border-cinema-border overflow-hidden rounded-2xl">
       <div className="flex flex-col sm:flex-row">
         {/* Poster */}
         <div className="w-full sm:w-28 h-40 sm:h-auto bg-cinema-elevated shrink-0 relative">
@@ -84,7 +84,7 @@ function TmdbResultCard({
               <Film className="w-8 h-8" />
             </div>
           )}
-          <Badge className="absolute top-2 left-2 text-[10px] bg-cinema-elevated/90 text-foreground border-cinema-border">
+          <Badge className="absolute top-2 left-2 text-[10px] bg-cinema-elevated/90 text-foreground border-cinema-border rounded-lg">
             {type === "movie" ? "Movie" : "Series"}
           </Badge>
         </div>
@@ -127,7 +127,7 @@ function TmdbResultCard({
             size="sm"
             onClick={onImport}
             disabled={isImporting}
-            className="w-fit bg-cinema-red hover:bg-cinema-red-hover text-white text-xs"
+            className="w-fit bg-cinema-red hover:bg-cinema-red-hover text-white text-xs rounded-xl shadow-lg shadow-cinema-red/20"
           >
             {isImporting ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -210,7 +210,7 @@ export default function TmdbImportPage() {
     <>
       <AdminHeader title="TMDB Import" />
 
-      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+      <div className="flex-1 p-8 space-y-6 overflow-y-auto">
         {/* Search Bar */}
         <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
           <div className="flex-1">
@@ -219,14 +219,14 @@ export default function TmdbImportPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Search movies or TV shows..."
-              className="h-10 bg-cinema-elevated border-cinema-border"
+              className="h-10 rounded-xl bg-cinema-elevated border-cinema-border"
             />
           </div>
           <Select
             value={type}
             onValueChange={(v) => setType(v as "movie" | "tv")}
           >
-            <SelectTrigger className="w-full sm:w-36 h-10 bg-cinema-elevated border-cinema-border">
+            <SelectTrigger className="w-full sm:w-36 h-10 rounded-xl bg-cinema-elevated border-cinema-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -245,7 +245,7 @@ export default function TmdbImportPage() {
           <Button
             onClick={() => handleSearch(1)}
             disabled={isSearching || !query.trim()}
-            className="h-10 bg-cinema-red hover:bg-cinema-red-hover text-white"
+            className="h-10 bg-cinema-red hover:bg-cinema-red-hover text-white rounded-xl"
           >
             {isSearching ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -285,16 +285,16 @@ export default function TmdbImportPage() {
             {[...Array(3)].map((_, i) => (
               <Card
                 key={i}
-                className="bg-cinema-surface border-cinema-border overflow-hidden"
+                className="bg-cinema-surface border-cinema-border overflow-hidden rounded-2xl"
               >
                 <div className="flex">
-                  <Skeleton className="w-28 h-40 shrink-0" />
+                  <Skeleton className="w-28 h-40 shrink-0 rounded-lg" />
                   <div className="flex-1 p-4 space-y-2">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3 w-1/3" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-5/6" />
-                    <Skeleton className="h-8 w-20 mt-4" />
+                    <Skeleton className="h-4 w-2/3 rounded-lg" />
+                    <Skeleton className="h-3 w-1/3 rounded-lg" />
+                    <Skeleton className="h-3 w-full rounded-lg" />
+                    <Skeleton className="h-3 w-5/6 rounded-lg" />
+                    <Skeleton className="h-8 w-20 mt-4 rounded-lg" />
                   </div>
                 </div>
               </Card>
@@ -331,7 +331,7 @@ export default function TmdbImportPage() {
               size="sm"
               disabled={currentPage <= 1 || isSearching}
               onClick={() => handleSearch(currentPage - 1)}
-              className="border-cinema-border text-xs"
+              className="border-cinema-border text-xs rounded-xl"
             >
               Previous
             </Button>
@@ -343,7 +343,7 @@ export default function TmdbImportPage() {
               size="sm"
               disabled={currentPage >= totalPages || isSearching}
               onClick={() => handleSearch(currentPage + 1)}
-              className="border-cinema-border text-xs"
+              className="border-cinema-border text-xs rounded-xl"
             >
               Next
             </Button>

@@ -73,10 +73,10 @@ interface BrowseResponse {
 
 function BrowseSkeleton() {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 md:gap-5">
       {Array.from({ length: 14 }).map((_, i) => (
         <div key={i} className="space-y-2">
-          <Skeleton className="aspect-[2/3] w-full rounded-md bg-cinema-elevated" />
+          <Skeleton className="aspect-[2/3] w-full rounded-xl bg-cinema-elevated" />
           <Skeleton className="h-4 w-3/4 rounded" />
           <Skeleton className="h-3 w-1/2 rounded" />
         </div>
@@ -92,7 +92,7 @@ function BrowseSkeleton() {
 function EmptyState({ search }: { search?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-16 h-16 rounded-full bg-cinema-surface flex items-center justify-center mb-4">
+      <div className="w-20 h-20 rounded-full bg-cinema-red/5 flex items-center justify-center mb-4">
         <Search className="w-7 h-7 text-cinema-muted" />
       </div>
       <p className="text-foreground text-lg font-medium mb-1">
@@ -230,9 +230,9 @@ function BrowseContent() {
       {/* ---------------------------------------------------------------- */}
       {/* Header Section                                                    */}
       {/* ---------------------------------------------------------------- */}
-      <section className="pt-8 pb-6 px-6 md:px-10 lg:px-0 max-w-8xl mx-auto">
+      <section className="pt-10 pb-8 px-5 md:px-8 lg:px-0 max-w-[1400px] mx-auto">
         {/* Page title */}
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-1">
           Browse
         </h1>
         {activeType !== "all" && (
@@ -242,14 +242,14 @@ function BrowseContent() {
         )}
 
         {/* Search bar */}
-        <div className="relative max-w-md mb-5">
+        <div className="relative max-w-sm mb-5">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cinema-muted pointer-events-none" />
           <Input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search titles..."
-            className="pl-9 pr-9 h-9 bg-cinema-surface border-cinema-border text-foreground placeholder:text-cinema-muted focus-visible:ring-cinema-red/30 focus-visible:border-cinema-red/50"
+            className="pl-9 pr-9 h-10 rounded-xl bg-cinema-surface border-cinema-border text-foreground placeholder:text-cinema-muted focus-visible:ring-cinema-red/30 focus-visible:border-cinema-red/50"
           />
           {searchInput && (
             <button
@@ -274,8 +274,8 @@ function BrowseContent() {
                 onClick={() => handleTypeChange(filter.value)}
                 className={
                   activeType === filter.value
-                    ? "bg-cinema-red hover:bg-cinema-red-hover text-white border-cinema-red shadow-sm gap-1.5"
-                    : "bg-cinema-surface border-cinema-border text-muted-foreground hover:text-foreground hover:border-cinema-muted/50 gap-1.5"
+                    ? "bg-cinema-red hover:bg-cinema-red-hover text-white border-cinema-red shadow-lg shadow-cinema-red/20 rounded-lg gap-1.5"
+                    : "bg-cinema-surface border-cinema-border/80 text-muted-foreground hover:text-foreground hover:border-muted-foreground/30 rounded-lg gap-1.5"
                 }
               >
                 {filter.icon}
@@ -289,7 +289,7 @@ function BrowseContent() {
             <Select value={sort} onValueChange={handleSortChange}>
               <SelectTrigger
                 size="sm"
-                className="w-[140px] bg-cinema-surface border-cinema-border text-muted-foreground focus:ring-cinema-red/30 focus:border-cinema-red/50"
+                className="w-[140px] h-10 rounded-lg bg-cinema-surface border-cinema-border text-muted-foreground focus:ring-cinema-red/30 focus:border-cinema-red/50"
               >
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -306,7 +306,7 @@ function BrowseContent() {
       {/* ---------------------------------------------------------------- */}
       {/* Content Grid                                                      */}
       {/* ---------------------------------------------------------------- */}
-      <section className="px-6 md:px-10 lg:px-0 max-w-8xl mx-auto pb-6">
+      <section className="px-5 md:px-8 lg:px-0 max-w-[1400px] mx-auto pb-6">
         {/* Error state */}
         {isError && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -331,12 +331,12 @@ function BrowseContent() {
         {!isLoading && !isError && contents.length > 0 && (
           <>
             {/* Result count */}
-            <p className="text-xs text-cinema-muted mb-4">
+            <p className="text-xs text-muted-foreground/60 mb-4">
               {totalCount.toLocaleString()}{" "}
               {totalCount === 1 ? "title" : "titles"} found
             </p>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 md:gap-5">
               {contents.map((content, index) => (
                 <ContentCard
                   key={content.id}
@@ -350,13 +350,13 @@ function BrowseContent() {
 
         {/* Pagination */}
         {!isLoading && !isError && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 mt-10 pb-8">
+          <div className="flex items-center justify-center gap-4 mt-12 pb-8">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePrevPage}
               disabled={page <= 1}
-              className="bg-cinema-surface border-cinema-border text-muted-foreground hover:text-foreground hover:border-cinema-muted/50 disabled:opacity-40 disabled:pointer-events-none gap-1.5"
+              className="h-10 rounded-lg bg-cinema-surface border-cinema-border text-muted-foreground hover:text-foreground hover:border-cinema-muted/50 disabled:opacity-40 disabled:pointer-events-none gap-1.5"
             >
               <ChevronLeft className="w-4 h-4" />
               Previous
@@ -374,7 +374,7 @@ function BrowseContent() {
               size="sm"
               onClick={handleNextPage}
               disabled={page >= totalPages}
-              className="bg-cinema-surface border-cinema-border text-muted-foreground hover:text-foreground hover:border-cinema-muted/50 disabled:opacity-40 disabled:pointer-events-none gap-1.5"
+              className="h-10 rounded-lg bg-cinema-surface border-cinema-border text-muted-foreground hover:text-foreground hover:border-cinema-muted/50 disabled:opacity-40 disabled:pointer-events-none gap-1.5"
             >
               Next
               <ChevronRight className="w-4 h-4" />
@@ -405,11 +405,11 @@ export default function BrowsePage() {
 function BrowsePageFallback() {
   return (
     <div className="min-h-screen bg-cinema-bg">
-      <section className="pt-8 pb-6 px-6 md:px-10 lg:px-0 max-w-8xl mx-auto">
+      <section className="pt-10 pb-8 px-5 md:px-8 lg:px-0 max-w-[1400px] mx-auto">
         {/* Title skeleton */}
         <Skeleton className="h-9 w-32 rounded mb-1 bg-cinema-elevated" />
         {/* Search bar skeleton */}
-        <Skeleton className="h-9 max-w-md w-full rounded mb-5 bg-cinema-elevated" />
+        <Skeleton className="h-10 max-w-sm w-full rounded-xl mb-5 bg-cinema-elevated" />
         {/* Filter pills skeleton */}
         <div className="flex gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -420,7 +420,7 @@ function BrowsePageFallback() {
           ))}
         </div>
       </section>
-      <section className="px-6 md:px-10 lg:px-0 max-w-8xl mx-auto pb-6">
+      <section className="px-5 md:px-8 lg:px-0 max-w-[1400px] mx-auto pb-6">
         <BrowseSkeleton />
       </section>
     </div>

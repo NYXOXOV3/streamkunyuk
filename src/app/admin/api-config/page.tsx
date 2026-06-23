@@ -140,16 +140,16 @@ function ProviderConfigCard({
   };
 
   return (
-    <Card className="bg-cinema-surface border-cinema-border">
+    <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-base text-foreground">
+            <CardTitle className="text-[15px] font-semibold text-foreground">
               {providerName}
             </CardTitle>
             <Badge
               variant="outline"
-              className="text-[10px] border-cinema-border text-muted-foreground"
+              className="rounded-lg text-[10px] border-cinema-border text-muted-foreground"
             >
               {providerType}
             </Badge>
@@ -158,7 +158,7 @@ function ProviderConfigCard({
             {providerInfo?.has_api_key && (
               <Badge
                 variant="outline"
-                className="text-[10px] border-emerald-600/50 text-emerald-400"
+                className="rounded-lg text-[10px] border-emerald-600/50 text-emerald-400"
               >
                 <Shield className="w-3 h-3 mr-1" />
                 Key Set
@@ -177,28 +177,28 @@ function ProviderConfigCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         {/* Base URL */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Base URL</Label>
+          <Label className="text-[11px] text-muted-foreground/70">Base URL</Label>
           <Input
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://api.example.com/v1"
-            className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+            className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
           />
         </div>
 
         {/* API Key */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">API Key</Label>
+          <Label className="text-[11px] text-muted-foreground/70">API Key</Label>
           <div className="relative">
             <Input
               type={showApiKey ? "text" : "password"}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={providerInfo?.has_api_key ? "•••••••• (key is set, leave blank to keep)" : "Enter API key"}
-              className="h-9 text-sm pr-10 bg-cinema-elevated border-cinema-border"
+              className="h-10 rounded-xl text-sm pr-11 bg-cinema-elevated border-cinema-border"
             />
             <button
               type="button"
@@ -213,7 +213,7 @@ function ProviderConfigCard({
         {/* Secret Key (optional) */}
         {needsSecretKey && (
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">
+            <Label className="text-[11px] text-muted-foreground/70">
               Secret Key <span className="text-muted-foreground/60">(optional)</span>
             </Label>
             <div className="relative">
@@ -222,7 +222,7 @@ function ProviderConfigCard({
                 value={secretKey}
                 onChange={(e) => setSecretKey(e.target.value)}
                 placeholder="Enter secret key"
-                className="h-9 text-sm pr-10 bg-cinema-elevated border-cinema-border"
+                className="h-10 rounded-xl text-sm pr-11 bg-cinema-elevated border-cinema-border"
               />
               <button
                 type="button"
@@ -240,7 +240,7 @@ function ProviderConfigCard({
 
         {testMessage && testStatus !== "pending" && (
           <div
-            className={`text-xs px-3 py-2 rounded-md ${
+            className={`text-xs px-3 py-2 rounded-xl ${
               testStatus === "success"
                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                 : "bg-destructive/10 text-destructive border border-destructive/20"
@@ -251,12 +251,12 @@ function ProviderConfigCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-3 pt-1">
           <Button
             size="sm"
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-cinema-red hover:bg-cinema-red-hover text-white text-xs"
+            className="h-10 rounded-xl shadow-lg shadow-cinema-red/20 bg-cinema-red hover:bg-cinema-red-hover text-white text-xs"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
             Save
@@ -266,7 +266,7 @@ function ProviderConfigCard({
             variant="outline"
             onClick={handleTest}
             disabled={isTesting || isSaving}
-            className="border-cinema-border text-foreground text-xs hover:bg-accent"
+            className="h-10 rounded-xl border-cinema-border text-foreground text-xs hover:bg-accent"
           >
             {isTesting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5 mr-1.5" />}
             Test Connection
@@ -286,8 +286,8 @@ export default function ApiConfigPage() {
     <>
       <AdminHeader title="API Configuration" />
 
-      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-        <p className="text-sm text-muted-foreground max-w-2xl">
+      <div className="flex-1 p-8 space-y-6 overflow-y-auto">
+        <p className="text-[13px] text-muted-foreground/70 leading-relaxed max-w-2xl">
           Manage API credentials for external services. All keys are encrypted
           with AES-256-GCM before storage. Secrets are never sent to the client
           browser.
@@ -297,7 +297,7 @@ export default function ApiConfigPage() {
 
         {/* Metadata Providers */}
         <div>
-          <h2 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
+          <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-4">
             Metadata Provider
           </h2>
           <ProviderConfigCard
@@ -309,10 +309,10 @@ export default function ApiConfigPage() {
 
         {/* Micro-drama Providers */}
         <div>
-          <h2 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
+          <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-4">
             Micro-Drama Providers
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <ProviderConfigCard
               providerName="melolo"
               defaultBaseUrl="https://api.melolo.com/v1"

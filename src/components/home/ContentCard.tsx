@@ -43,13 +43,13 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
     >
       <Link href={`/watch/${content.id}`} className="block group">
         {/* Image Container — VERTICAL poster (2:3 portrait) */}
-        <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-cinema-elevated">
+        <div className="relative aspect-[2/3] rounded-xl border border-white/[0.06] group-hover:border-cinema-red/30 transition-colors duration-300 overflow-hidden bg-cinema-elevated shadow-lg shadow-black/20">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={content.title}
               loading={index < 5 ? "eager" : "lazy"}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -62,7 +62,7 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
 
           {/* Premium Badge */}
           {content.is_premium_only && (
-            <Badge className="absolute top-2 right-2 bg-cinema-gold/90 text-black text-[10px] font-semibold border-none gap-0.5">
+            <Badge className="absolute top-2 right-2 rounded-md bg-cinema-gold/90 text-black text-[10px] font-semibold border-none gap-0.5">
               <Crown className="w-2.5 h-2.5" />
               Premium
             </Badge>
@@ -72,7 +72,7 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
           {content.rating > 0 && (
             <Badge
               variant="outline"
-              className="absolute bottom-2 left-2 bg-black/60 text-white border-white/10 text-[10px] gap-0.5 backdrop-blur-sm"
+              className="absolute bottom-2 left-2 rounded-md bg-black/60 text-white border-white/10 text-[10px] gap-0.5 backdrop-blur-md"
             >
               <Star className="w-2.5 h-2.5 text-cinema-gold fill-cinema-gold" />
               {content.rating.toFixed(1)}
@@ -81,11 +81,11 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
 
           {/* Hover Overlay + Play Button */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/50" />
             <motion.div
               initial={{ scale: 0.7, opacity: 0 }}
               whileHover={{ scale: 1.05 }}
-              className="relative z-10 w-11 h-11 rounded-full bg-cinema-red/95 flex items-center justify-center shadow-lg shadow-cinema-red/30"
+              className="relative z-10 w-12 h-12 rounded-full bg-cinema-red flex items-center justify-center shadow-xl shadow-cinema-red/40"
             >
               <Play className="w-5 h-5 text-white ml-0.5" />
             </motion.div>
@@ -94,10 +94,10 @@ export function ContentCard({ content, index = 0 }: ContentCardProps) {
 
         {/* Title & Meta */}
         <div className="mt-2 px-0.5">
-          <p className="text-sm font-medium text-foreground truncate group-hover:text-cinema-red transition-colors">
+          <p className="text-[13px] font-medium text-foreground/90 truncate group-hover:text-white transition-colors">
             {content.title}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5">
             {content.release_year && <span>{content.release_year}</span>}
             {content.release_year && " · "}
             <span>{TYPE_LABELS[content.type]}</span>

@@ -18,19 +18,19 @@ export function HomeSkeleton() {
       </div>
 
       {/* Carousel skeletons */}
-      <div className="max-w-8xl mx-auto space-y-6 py-8">
+      <div className="max-w-8xl mx-auto space-y-8 py-10">
         {[...Array(4)].map((_, i) => (
-          <section key={i} className="px-6 md:px-10 lg:px-0">
-            <Skeleton className="h-6 w-40 mb-4" />
+          <section key={i} className="px-5 md:px-8 lg:px-0">
+            <Skeleton className="h-7 w-44 mb-5 rounded-md" />
             <div className="flex gap-3 overflow-hidden">
               {[...Array(7)].map((_, j) => (
                 <div
                   key={j}
-                  className="shrink-0 w-[165px] space-y-2"
+                  className="shrink-0 w-[170px] space-y-2"
                 >
-                  <Skeleton className="aspect-[2/3] rounded-md" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="aspect-[2/3] rounded-xl" />
+                  <Skeleton className="h-4 w-3/4 rounded-md" />
+                  <Skeleton className="h-3 w-1/2 rounded-md" />
                 </div>
               ))}
             </div>

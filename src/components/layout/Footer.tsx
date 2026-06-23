@@ -29,8 +29,11 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-cinema-border bg-cinema-bg">
-      <div className="max-w-8xl mx-auto px-4 md:px-6 pt-16 pb-8">
+    <footer className="bg-cinema-bg">
+      {/* Top gradient fade separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-cinema-border to-transparent" />
+
+      <div className="max-w-8xl mx-auto px-4 md:px-6 pt-20 pb-10">
         {/* Top: Logo + Links */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand column */}
@@ -52,15 +55,15 @@ export function Footer() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([heading, links]) => (
             <div key={heading}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-4">
                 {heading}
               </h3>
-              <ul className="space-y-3">
+              <ul className="space-y-3.5">
                 {links.map(({ label, href }) => (
                   <li key={label}>
                     <Link
                       href={href}
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 hover:translate-x-0.5 inline-block"
                     >
                       {label}
                     </Link>
@@ -72,7 +75,7 @@ export function Footer() {
 
           {/* Social column */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-4">
               Social
             </h3>
             <div className="flex items-center gap-3">
@@ -81,7 +84,7 @@ export function Footer() {
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200"
+                  className="w-10 h-10 rounded-xl bg-cinema-elevated flex items-center justify-center text-muted-foreground hover:bg-cinema-red/20 hover:text-cinema-red transition-colors duration-200"
                 >
                   <Icon className="w-4 h-4" />
                 </Link>
@@ -91,8 +94,8 @@ export function Footer() {
         </div>
 
         {/* Bottom: Copyright */}
-        <div className="mt-12 pt-8 border-t border-cinema-border text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="mt-16 pt-8 border-t border-cinema-border text-center">
+          <p className="text-xs text-muted-foreground/60">
             &copy; {new Date().getFullYear()} StreamVault. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground/60 mt-1">

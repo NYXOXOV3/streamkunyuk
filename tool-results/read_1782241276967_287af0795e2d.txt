@@ -1,0 +1,820 @@
+     1→"use client";
+     2→
+     3→/**
+     4→ * Admin Banner Management Page
+     5→ *
+     6→ * Allows admins to:
+     7→ *   - Create "content" banners (picks from published content)
+     8→ *   - Create "custom" banners (upload any image URL + link)
+     9→ *   - Reorder, toggle active, edit, delete banners
+    10→ *   - Set CTA text and link for each banner
+    11→ */
+    12→
+    13→import { useState, useCallback } from "react";
+    14→import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+    15→import { AdminHeader } from "@/components/admin/AdminHeader";
+    16→import { Button } from "@/components/ui/button";
+    17→import { Input } from "@/components/ui/input";
+    18→import { Badge } from "@/components/ui/badge";
+    19→import { Card, CardContent } from "@/components/ui/card";
+    20→import { Skeleton } from "@/components/ui/skeleton";
+    21→import {
+    22→  Select,
+    23→  SelectContent,
+    24→  SelectItem,
+    25→  SelectTrigger,
+    26→  SelectValue,
+    27→} from "@/components/ui/select";
+    28→import {
+    29→  Dialog,
+    30→  DialogContent,
+    31→  DialogHeader,
+    32→  DialogTitle,
+    33→  DialogFooter,
+    34→} from "@/components/ui/dialog";
+    35→import {
+    36→  Image as ImageIcon,
+    37→  Film,
+    38→  Plus,
+    39→  GripVertical,
+    40→  Pencil,
+    41→  Trash2,
+    42→  Eye,
+    43→  EyeOff,
+    44→  ArrowUp,
+    45→  ArrowDown,
+    46→  ExternalLink,
+    47→  Loader2,
+    48→} from "lucide-react";
+    49→
+    50→// ---------------------------------------------------------------------------
+    51→// Types
+    52→// ---------------------------------------------------------------------------
+    53→
+    54→interface BannerItem {
+    55→  id: string;
+    56→  title: string | null;
+    57→  subtitle: string | null;
+    58→  banner_type: "content" | "custom";
+    59→  content_id: string | null;
+    60→  custom_image_url: string | null;
+    61→  custom_link_url: string | null;
+    62→  cta_text: string | null;
+    63→  cta_link: string | null;
+    64→  sort_order: number;
+    65→  is_active: boolean;
+    66→  start_date: string | null;
+    67→  end_date: string | null;
+    68→  created_at: string;
+    69→  updated_at: string;
+    70→}
+    71→
+    72→interface ContentOption {
+    73→  id: string;
+    74→  title: string;
+    75→  backdrop_url: string | null;
+    76→  poster_url: string | null;
+    77→  type: string;
+    78→}
+    79→
+    80→interface BannerFormData {
+    81→  banner_type: "content" | "custom";
+    82→  content_id: string;
+    83→  custom_image_url: string;
+    84→  custom_link_url: string;
+    85→  title: string;
+    86→  subtitle: string;
+    87→  cta_text: string;
+    88→  cta_link: string;
+    89→  is_active: boolean;
+    90→  start_date: string;
+    91→  end_date: string;
+    92→}
+    93→
+    94→const EMPTY_FORM: BannerFormData = {
+    95→  banner_type: "content",
+    96→  content_id: "",
+    97→  custom_image_url: "",
+    98→  custom_link_url: "",
+    99→  title: "",
+   100→  subtitle: "",
+   101→  cta_text: "Learn More",
+   102→  cta_link: "",
+   103→  is_active: true,
+   104→  start_date: "",
+   105→  end_date: "",
+   106→};
+   107→
+   108→// ---------------------------------------------------------------------------
+   109→// Page Component
+   110→// ---------------------------------------------------------------------------
+   111→
+   112→export default function BannersPage() {
+   113→  const queryClient = useQueryClient();
+   114→  const [dialogOpen, setDialogOpen] = useState(false);
+   115→  const [editingBanner, setEditingBanner] = useState<BannerItem | null>(null);
+   116→  const [form, setForm] = useState<BannerFormData>(EMPTY_FORM);
+   117→
+   118→  // ---- Fetch banners ----
+   119→  const {
+   120→    data: banners = [],
+   121→    isLoading,
+   122→    error,
+   123→  } = useQuery<BannerItem[]>({
+   124→    queryKey: ["admin-banners"],
+   125→    queryFn: async () => {
+   126→      const res = await fetch("/api/admin/banners");
+   127→      const json = await res.json();
+   128→      if (json.error) throw new Error(json.error);
+   129→      if (json.tableMissing) throw new Error("TABLE_MISSING");
+   130→      return (json.data ?? []) as BannerItem[];
+   131→    },
+   132→    retry: false,
+   133→    staleTime: 1000 * 30,
+   134→  });
+   135→
+   136→  const isTableMissing =
+   137→    !isLoading && error && (error as Error).message === "TABLE_MISSING";
+   138→
+   139→  // ---- Fetch content options for the content selector ----
+   140→  const { data: contentOptions = [] } = useQuery<ContentOption[]>({
+   141→    queryKey: ["admin-banner-content-options"],
+   142→    queryFn: async () => {
+   143→      const res = await fetch("/api/admin/content?status=published&limit=100");
+   144→      const json = await res.json();
+   145→      return (json.data ?? []).map((c: Record<string, unknown>) => ({
+   146→        id: c.id,
+   147→        title: c.title,
+   148→        backdrop_url: c.backdrop_url,
+   149→        poster_url: c.poster_url,
+   150→        type: c.type,
+   151→      })) as ContentOption[];
+   152→    },
+   153→    staleTime: 1000 * 60 * 5,
+   154→  });
+   155→
+   156→  // ---- Save mutation (create or update) ----
+   157→  const saveMutation = useMutation({
+   158→    mutationFn: async (data: BannerFormData & { id?: string }) => {
+   159→      const url = data.id ? "/api/admin/banners" : "/api/admin/banners";
+   160→      const method = data.id ? "PATCH" : "POST";
+   161→      const body = data.id
+   162→        ? { id: data.id, ...data }
+   163→        : {
+   164→            banner_type: data.banner_type,
+   165→            content_id: data.content_id || null,
+   166→            custom_image_url: data.custom_image_url || null,
+   167→            custom_link_url: data.custom_link_url || null,
+   168→            title: data.title || null,
+   169→            subtitle: data.subtitle || null,
+   170→            cta_text: data.cta_text || "Learn More",
+   171→            cta_link: data.cta_link || null,
+   172→            is_active: data.is_active,
+   173→            start_date: data.start_date || null,
+   174→            end_date: data.end_date || null,
+   175→          };
+   176→
+   177→      const res = await fetch(url, {
+   178→        method,
+   179→        headers: { "Content-Type": "application/json" },
+   180→        body: JSON.stringify(body),
+   181→      });
+   182→      const json = await res.json();
+   183→      if (json.error) throw new Error(json.error);
+   184→      return json.data;
+   185→    },
+   186→    onSuccess: () => {
+   187→      queryClient.invalidateQueries({ queryKey: ["admin-banners"] });
+   188→      setDialogOpen(false);
+   189→      setEditingBanner(null);
+   190→      setForm(EMPTY_FORM);
+   191→    },
+   192→  });
+   193→
+   194→  // ---- Delete mutation ----
+   195→  const deleteMutation = useMutation({
+   196→    mutationFn: async (id: string) => {
+   197→      const res = await fetch(`/api/admin/banners?id=${id}`, {
+   198→        method: "DELETE",
+   199→      });
+   200→      const json = await res.json();
+   201→      if (json.error) throw new Error(json.error);
+   202→    },
+   203→    onSuccess: () => {
+   204→      queryClient.invalidateQueries({ queryKey: ["admin-banners"] });
+   205→    },
+   206→  });
+   207→
+   208→  // ---- Toggle active ----
+   209→  const toggleActive = useCallback(
+   210→    (banner: BannerItem) => {
+   211→      saveMutation.mutate({
+   212→        id: banner.id,
+   213→        ...form,
+   214→        is_active: !banner.is_active,
+   215→      });
+   216→    },
+   217→    [saveMutation, form],
+   218→  );
+   219→
+   220→  // ---- Reorder ----
+   221→  const reorder = useCallback(
+   222→    (banner: BannerItem, direction: "up" | "down") => {
+   223→      const idx = banners.findIndex((b) => b.id === banner.id);
+   224→      if (idx < 0) return;
+   225→      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+   226→      if (swapIdx < 0 || swapIdx >= banners.length) return;
+   227→
+   228→      const swapBanner = banners[swapIdx];
+   229→      // Swap sort_orders
+   230→      saveMutation.mutate({
+   231→        id: banner.id,
+   232→        ...form,
+   233→        sort_order: swapBanner.sort_order,
+   234→      });
+   235→      setTimeout(() => {
+   236→        saveMutation.mutate({
+   237→          id: swapBanner.id,
+   238→          ...form,
+   239→          sort_order: banner.sort_order,
+   240→        });
+   241→      }, 200);
+   242→    },
+   243→    [banners, saveMutation, form],
+   244→  );
+   245→
+   246→  // ---- Dialog handlers ----
+   247→  const openCreate = () => {
+   248→    setEditingBanner(null);
+   249→    setForm(EMPTY_FORM);
+   250→    setDialogOpen(true);
+   251→  };
+   252→
+   253→  const openEdit = (banner: BannerItem) => {
+   254→    setEditingBanner(banner);
+   255→    setForm({
+   256→      banner_type: banner.banner_type,
+   257→      content_id: banner.content_id || "",
+   258→      custom_image_url: banner.custom_image_url || "",
+   259→      custom_link_url: banner.custom_link_url || "",
+   260→      title: banner.title || "",
+   261→      subtitle: banner.subtitle || "",
+   262→      cta_text: banner.cta_text || "Learn More",
+   263→      cta_link: banner.cta_link || "",
+   264→      is_active: banner.is_active,
+   265→      start_date: banner.start_date ? banner.start_date.slice(0, 16) : "",
+   266→      end_date: banner.end_date ? banner.end_date.slice(0, 16) : "",
+   267→    });
+   268→    setDialogOpen(true);
+   269→  };
+   270→
+   271→  const handleSave = () => {
+   272→    if (form.banner_type === "content" && !form.content_id) return;
+   273→    if (form.banner_type === "custom" && !form.custom_image_url) return;
+   274→    saveMutation.mutate(
+   275→      editingBanner ? { ...form, id: editingBanner.id } : form,
+   276→    );
+   277→  };
+   278→
+   279→  // ---- Get display info for a banner ----
+   280→  const getBannerImage = (b: BannerItem): string | null => {
+   281→    if (b.banner_type === "content" && b.content_id) {
+   282→      const content = contentOptions.find((c) => c.id === b.content_id);
+   283→      return content?.backdrop_url || content?.poster_url || null;
+   284→    }
+   285→    return b.custom_image_url;
+   286→  };
+   287→
+   288→  const getContentTitle = (b: BannerItem): string => {
+   289→    if (b.banner_type === "content" && b.content_id) {
+   290→      const content = contentOptions.find((c) => c.id === b.content_id);
+   291→      return content?.title || "Unknown Content";
+   292→    }
+   293→    return b.custom_link_url || "Custom Banner";
+   294→  };
+   295→
+   296→  // ---- Render ----
+   297→  return (
+   298→    <>
+   299→      <AdminHeader title="Banner Management" />
+   300→
+   301→      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+   302→        {/* Top actions */}
+   303→        <div className="flex items-center justify-between">
+   304→          <p className="text-sm text-muted-foreground">
+   305→            Manage homepage hero banners. {banners.length} banner
+   306→            {banners.length !== 1 ? "s" : ""} total.
+   307→          </p>
+   308→          <Button
+   309→            onClick={openCreate}
+   310→            disabled={isTableMissing}
+   311→            className="bg-cinema-red hover:bg-cinema-red-hover text-white gap-1.5 disabled:opacity-40"
+   312→          >
+   313→            <Plus className="w-4 h-4" />
+   314→            Add Banner
+   315→          </Button>
+   316→        </div>
+   317→
+   318→        {/* Table missing — show setup instructions */}
+   319→        {isTableMissing && (
+   320→          <Card className="bg-cinema-surface border-amber-500/30">
+   321→            <CardContent className="py-8 text-center space-y-3">
+   322→              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+   323→                <ImageIcon className="w-6 h-6 text-amber-400" />
+   324→              </div>
+   325→              <div>
+   326→                <p className="text-sm font-medium text-foreground mb-1">
+   327→                  Banners table not created yet
+   328→                </p>
+   329→                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+   330→                  Run the SQL below in your <strong>Supabase SQL Editor</strong> to
+   331→                  enable banner management. The file is at{" "}
+   332→                  <code className="bg-cinema-bg px-1 rounded text-[11px]">
+   333→                    supabase/migrations/00003_create_banners_table.sql
+   334→                  </code>
+   335→                </p>
+   336→              </div>
+   337→              <pre className="bg-cinema-bg rounded-md p-3 text-left text-[11px] text-foreground/80 max-w-lg mx-auto overflow-x-auto border border-cinema-border leading-relaxed">
+   338→{`CREATE TABLE IF NOT EXISTS public.banners (
+   339→  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+   340→  title TEXT, subtitle TEXT,
+   341→  banner_type TEXT NOT NULL DEFAULT 'content'
+   342→    CHECK (banner_type IN ('content', 'custom')),
+   343→  content_id UUID REFERENCES public.contents(id)
+   344→    ON DELETE SET NULL,
+   345→  custom_image_url TEXT, custom_link_url TEXT,
+   346→  cta_text TEXT DEFAULT 'Learn More', cta_link TEXT,
+   347→  sort_order INT NOT NULL DEFAULT 0,
+   348→  is_active BOOLEAN NOT NULL DEFAULT true,
+   349→  start_date TIMESTAMPTZ, end_date TIMESTAMPTZ,
+   350→  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   351→  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   352→);
+   353→ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
+   354→CREATE POLICY "Anyone can read active banners"
+   355→  ON public.banners FOR SELECT USING (is_active = true);
+   356→CREATE POLICY "Admins full access banners"
+   357→  ON public.banners FOR ALL USING (
+   358→    EXISTS (SELECT 1 FROM public.profiles
+   359→      WHERE id = auth.uid() AND is_admin = true));
+   360→CREATE INDEX IF NOT EXISTS idx_banners_sort_order
+   361→  ON public.banners(sort_order ASC);
+   362→CREATE INDEX IF NOT EXISTS idx_banners_active
+   363→  ON public.banners(is_active) WHERE is_active = true;`}
+   364→              </pre>
+   365→            </CardContent>
+   366→          </Card>
+   367→        )}
+   368→
+   369→        {/* Other errors */}
+   370→        {error && !isTableMissing && (
+   371→          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
+   372→            Failed to load banners: {(error as Error).message}
+   373→          </div>
+   374→        )}
+   375→
+   376→        {/* Loading skeleton */}
+   377→        {isLoading && (
+   378→          <div className="space-y-3">
+   379→            {[...Array(3)].map((_, i) => (
+   380→              <div
+   381→                key={i}
+   382→                className="h-24 bg-cinema-elevated rounded-lg animate-pulse"
+   383→              />
+   384→            ))}
+   385→          </div>
+   386→        )}
+   387→
+   388→        {/* Banner list */}
+   389→        {!isLoading && !error && (
+   390→          <div className="space-y-3">
+   391→            {banners.length === 0 ? (
+   392→              <Card className="bg-cinema-surface border-cinema-border">
+   393→                <CardContent className="flex flex-col items-center justify-center py-16">
+   394→                  <ImageIcon className="w-10 h-10 text-muted-foreground/30 mb-3" />
+   395→                  <p className="text-sm text-muted-foreground mb-1">
+   396→                    No banners yet
+   397→                  </p>
+   398→                  <p className="text-xs text-muted-foreground/70">
+   399→                    Create a banner to display on the homepage hero section.
+   400→                  </p>
+   401→                </CardContent>
+   402→              </Card>
+   403→            ) : (
+   404→              banners.map((banner, idx) => {
+   405→                const imgUrl = getBannerImage(banner);
+   406→                return (
+   407→                  <Card
+   408→                    key={banner.id}
+   409→                    className="bg-cinema-surface border-cinema-border overflow-hidden"
+   410→                  >
+   411→                    <CardContent className="p-0">
+   412→                      <div className="flex items-stretch">
+   413→                        {/* Thumbnail */}
+   414→                        <div className="w-48 shrink-0 bg-cinema-elevated relative overflow-hidden">
+   415→                          {imgUrl ? (
+   416→                            <img
+   417→                              src={imgUrl}
+   418→                              alt=""
+   419→                              className="w-full h-full object-cover"
+   420→                            />
+   421→                          ) : (
+   422→                            <div className="w-full h-full flex items-center justify-center">
+   423→                              <ImageIcon className="w-8 h-8 text-muted-foreground/20" />
+   424→                            </div>
+   425→                          )}
+   426→                          {/* Type badge */}
+   427→                          <Badge
+   428→                            className="absolute top-2 left-2 text-[10px] border-none gap-0.5"
+   429→                            variant={
+   430→                              banner.banner_type === "content"
+   431→                                ? "default"
+   432→                                : "secondary"
+   433→                            }
+   434→                          >
+   435→                            {banner.banner_type === "content" ? (
+   436→                              <Film className="w-2.5 h-2.5" />
+   437→                            ) : (
+   438→                              <ImageIcon className="w-2.5 h-2.5" />
+   439→                            )}
+   440→                            {banner.banner_type}
+   441→                          </Badge>
+   442→                          {/* Inactive overlay */}
+   443→                          {!banner.is_active && (
+   444→                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+   445→                              <span className="text-xs font-medium text-white/70">
+   446→                                Inactive
+   447→                              </span>
+   448→                            </div>
+   449→                          )}
+   450→                        </div>
+   451→
+   452→                        {/* Info */}
+   453→                        <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+   454→                          <div>
+   455→                            <div className="flex items-center gap-2 mb-1">
+   456→                              <h3 className="text-sm font-semibold text-foreground truncate">
+   457→                                {banner.title || getContentTitle(banner)}
+   458→                              </h3>
+   459→                              {banner.is_active ? (
+   460→                                <Badge
+   461→                                  variant="outline"
+   462→                                  className="text-[10px] border-emerald-600/50 text-emerald-400 shrink-0"
+   463→                                >
+   464→                                  Active
+   465→                                </Badge>
+   466→                              ) : (
+   467→                                <Badge
+   468→                                  variant="outline"
+   469→                                  className="text-[10px] border-cinema-border text-muted-foreground shrink-0"
+   470→                                >
+   471→                                  Inactive
+   472→                                </Badge>
+   473→                              )}
+   474→                            </div>
+   475→                            {banner.subtitle && (
+   476→                              <p className="text-xs text-muted-foreground truncate mb-1">
+   477→                                {banner.subtitle}
+   478→                              </p>
+   479→                            )}
+   480→                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+   481→                              <span>
+   482→                                Order: {banner.sort_order}
+   483→                              </span>
+   484→                              {banner.cta_text && (
+   485→                                <span>CTA: {banner.cta_text}</span>
+   486→                              )}
+   487→                              {banner.start_date && (
+   488→                                <span>
+   489→                                  From:{" "}
+   490→                                  {new Date(
+   491→                                    banner.start_date,
+   492→                                  ).toLocaleDateString()}
+   493→                                </span>
+   494→                              )}
+   495→                              {banner.end_date && (
+   496→                                <span>
+   497→                                  Until:{" "}
+   498→                                  {new Date(
+   499→                                    banner.end_date,
+   500→                                  ).toLocaleDateString()}
+   501→                                </span>
+   502→                              )}
+   503→                            </div>
+   504→                          </div>
+   505→
+   506→                          {/* Actions */}
+   507→                          <div className="flex items-center gap-1.5 mt-3">
+   508→                            <Button
+   509→                              size="sm"
+   510→                              variant="outline"
+   511→                              className="border-cinema-border text-xs h-7"
+   512→                              onClick={() => toggleActive(banner)}
+   513→                            >
+   514→                              {banner.is_active ? (
+   515→                                <EyeOff className="w-3.5 h-3.5 mr-1" />
+   516→                              ) : (
+   517→                                <Eye className="w-3.5 h-3.5 mr-1" />
+   518→                              )}
+   519→                              {banner.is_active ? "Hide" : "Show"}
+   520→                            </Button>
+   521→                            <Button
+   522→                              size="sm"
+   523→                              variant="outline"
+   524→                              className="border-cinema-border text-xs h-7"
+   525→                              onClick={() => openEdit(banner)}
+   526→                            >
+   527→                              <Pencil className="w-3.5 h-3.5 mr-1" />
+   528→                              Edit
+   529→                            </Button>
+   530→                            <Button
+   531→                              size="sm"
+   532→                              variant="outline"
+   533→                              className="border-cinema-border text-xs h-7 text-destructive hover:text-destructive"
+   534→                              onClick={() => deleteMutation.mutate(banner.id)}
+   535→                              disabled={deleteMutation.isPending}
+   536→                            >
+   537→                              {deleteMutation.isPending ? (
+   538→                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+   539→                              ) : (
+   540→                                <Trash2 className="w-3.5 h-3.5 mr-1" />
+   541→                              )}
+   542→                              Delete
+   543→                            </Button>
+   544→
+   545→                            {/* Reorder buttons */}
+   546→                            <div className="ml-auto flex gap-1">
+   547→                              <Button
+   548→                                size="sm"
+   549→                                variant="ghost"
+   550→                                className="h-7 w-7 p-0"
+   551→                                disabled={idx === 0}
+   552→                                onClick={() => reorder(banner, "up")}
+   553→                              >
+   554→                                <ArrowUp className="w-3.5 h-3.5" />
+   555→                              </Button>
+   556→                              <Button
+   557→                                size="sm"
+   558→                                variant="ghost"
+   559→                                className="h-7 w-7 p-0"
+   560→                                disabled={idx === banners.length - 1}
+   561→                                onClick={() => reorder(banner, "down")}
+   562→                              >
+   563→                                <ArrowDown className="w-3.5 h-3.5" />
+   564→                              </Button>
+   565→                            </div>
+   566→                          </div>
+   567→                        </div>
+   568→                      </div>
+   569→                    </CardContent>
+   570→                  </Card>
+   571→                );
+   572→              })
+   573→            )}
+   574→          </div>
+   575→        )}
+   576→      </div>
+   577→
+   578→      {/* ---- Create/Edit Dialog ---- */}
+   579→      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+   580→        <DialogContent className="sm:max-w-lg bg-cinema-surface border-cinema-border">
+   581→          <DialogHeader>
+   582→            <DialogTitle>
+   583→              {editingBanner ? "Edit Banner" : "Add New Banner"}
+   584→            </DialogTitle>
+   585→          </DialogHeader>
+   586→
+   587→          <div className="space-y-4 py-2">
+   588→            {/* Banner Type */}
+   589→            <div className="space-y-1.5">
+   590→              <label className="text-sm font-medium text-foreground">
+   591→                Banner Type
+   592→              </label>
+   593→              <Select
+   594→                value={form.banner_type}
+   595→                onValueChange={(v) =>
+   596→                  setForm((f) => ({
+   597→                    ...f,
+   598→                    banner_type: v as "content" | "custom",
+   599→                  }))
+   600→                }
+   601→              >
+   602→                <SelectTrigger className="bg-cinema-elevated border-cinema-border">
+   603→                  <SelectValue />
+   604→                </SelectTrigger>
+   605→                <SelectContent className="bg-popover border-cinema-border">
+   606→                  <SelectItem value="content">
+   607→                    <span className="flex items-center gap-2">
+   608→                      <Film className="w-3.5 h-3.5" />
+   609→                      From Content
+   610→                    </span>
+   611→                  </SelectItem>
+   612→                  <SelectItem value="custom">
+   613→                    <span className="flex items-center gap-2">
+   614→                      <ImageIcon className="w-3.5 h-3.5" />
+   615→                      Custom Image (Promo)
+   616→                    </span>
+   617→                  </SelectItem>
+   618→                </SelectContent>
+   619→              </Select>
+   620→            </div>
+   621→
+   622→            {/* Content selector (only for content type) */}
+   623→            {form.banner_type === "content" && (
+   624→              <div className="space-y-1.5">
+   625→                <label className="text-sm font-medium text-foreground">
+   626→                  Select Content
+   627→                </label>
+   628→                <Select
+   629→                  value={form.content_id}
+   630→                  onValueChange={(v) =>
+   631→                    setForm((f) => ({ ...f, content_id: v }))
+   632→                  }
+   633→                >
+   634→                  <SelectTrigger className="bg-cinema-elevated border-cinema-border">
+   635→                    <SelectValue placeholder="Choose a published content..." />
+   636→                  </SelectTrigger>
+   637→                  <SelectContent className="bg-popover border-cinema-border max-h-60">
+   638→                    {contentOptions.map((c) => (
+   639→                      <SelectItem key={c.id} value={c.id}>
+   640→                        <span className="truncate">
+   641→                          {c.title}{" "}
+   642→                          <span className="text-muted-foreground text-xs capitalize">
+   643→                            ({c.type})
+   644→                          </span>
+   645→                        </span>
+   646→                      </SelectItem>
+   647→                    ))}
+   648→                  </SelectContent>
+   649→                </Select>
+   650→              </div>
+   651→            )}
+   652→
+   653→            {/* Custom image URL (only for custom type) */}
+   654→            {form.banner_type === "custom" && (
+   655→              <>
+   656→                <div className="space-y-1.5">
+   657→                  <label className="text-sm font-medium text-foreground">
+   658→                    Image URL
+   659→                  </label>
+   660→                  <Input
+   661→                    value={form.custom_image_url}
+   662→                    onChange={(e) =>
+   663→                      setForm((f) => ({
+   664→                        ...f,
+   665→                        custom_image_url: e.target.value,
+   666→                      }))
+   667→                    }
+   668→                    placeholder="https://example.com/promo-banner.jpg"
+   669→                    className="bg-cinema-elevated border-cinema-border"
+   670→                  />
+   671→                  {form.custom_image_url && (
+   672→                    <div className="mt-2 rounded-md overflow-hidden h-32 bg-cinema-elevated">
+   673→                      <img
+   674→                        src={form.custom_image_url}
+   675→                        alt="Preview"
+   676→                        className="w-full h-full object-cover"
+   677→                        onError={(e) => {
+   678→                          (e.target as HTMLImageElement).style.display = "none";
+   679→                        }}
+   680→                      />
+   681→                    </div>
+   682→                  )}
+   683→                </div>
+   684→                <div className="space-y-1.5">
+   685→                  <label className="text-sm font-medium text-foreground">
+   686→                    Link URL (optional)
+   687→                  </label>
+   688→                  <Input
+   689→                    value={form.custom_link_url}
+   690→                    onChange={(e) =>
+   691→                      setForm((f) => ({
+   692→                        ...f,
+   693→                        custom_link_url: e.target.value,
+   694→                      }))
+   695→                    }
+   696→                    placeholder="https://example.com/promo"
+   697→                    className="bg-cinema-elevated border-cinema-border"
+   698→                  />
+   699→                </div>
+   700→              </>
+   701→            )}
+   702→
+   703→            {/* Title & Subtitle */}
+   704→            <div className="grid grid-cols-2 gap-3">
+   705→              <div className="space-y-1.5">
+   706→                <label className="text-sm font-medium text-foreground">
+   707→                  Title{" "}
+   708→                  <span className="text-muted-foreground text-xs">
+   709→                    (optional, overrides content title)
+   710→                  </span>
+   711→                </label>
+   712→                <Input
+   713→                  value={form.title}
+   714→                  onChange={(e) =>
+   715→                    setForm((f) => ({ ...f, title: e.target.value }))
+   716→                  }
+   717→                  placeholder="Banner title"
+   718→                  className="bg-cinema-elevated border-cinema-border"
+   719→                />
+   720→              </div>
+   721→              <div className="space-y-1.5">
+   722→                <label className="text-sm font-medium text-foreground">
+   723→                  Subtitle
+   724→                </label>
+   725→                <Input
+   726→                  value={form.subtitle}
+   727→                  onChange={(e) =>
+   728→                    setForm((f) => ({ ...f, subtitle: e.target.value }))
+   729→                  }
+   730→                  placeholder="Short description"
+   731→                  className="bg-cinema-elevated border-cinema-border"
+   732→                />
+   733→              </div>
+   734→            </div>
+   735→
+   736→            {/* CTA Text & Link */}
+   737→            <div className="grid grid-cols-2 gap-3">
+   738→              <div className="space-y-1.5">
+   739→                <label className="text-sm font-medium text-foreground">
+   740→                  CTA Button Text
+   741→                </label>
+   742→                <Input
+   743→                  value={form.cta_text}
+   744→                  onChange={(e) =>
+   745→                    setForm((f) => ({ ...f, cta_text: e.target.value }))
+   746→                  }
+   747→                  placeholder="Learn More"
+   748→                  className="bg-cinema-elevated border-cinema-border"
+   749→                />
+   750→              </div>
+   751→              <div className="space-y-1.5">
+   752→                <label className="text-sm font-medium text-foreground">
+   753→                  CTA Link (optional)
+   754→                </label>
+   755→                <Input
+   756→                  value={form.cta_link}
+   757→                  onChange={(e) =>
+   758→                    setForm((f) => ({ ...f, cta_link: e.target.value }))
+   759→                  }
+   760→                  placeholder="/browse?sort=newest"
+   761→                  className="bg-cinema-elevated border-cinema-border"
+   762→                />
+   763→              </div>
+   764→            </div>
+   765→
+   766→            {/* Schedule */}
+   767→            <div className="grid grid-cols-2 gap-3">
+   768→              <div className="space-y-1.5">
+   769→                <label className="text-sm font-medium text-foreground">
+   770→                  Start Date (optional)
+   771→                </label>
+   772→                <Input
+   773→                  type="datetime-local"
+   774→                  value={form.start_date}
+   775→                  onChange={(e) =>
+   776→                    setForm((f) => ({ ...f, start_date: e.target.value }))
+   777→                  }
+   778→                  className="bg-cinema-elevated border-cinema-border"
+   779→                />
+   780→              </div>
+   781→              <div className="space-y-1.5">
+   782→                <label className="text-sm font-medium text-foreground">
+   783→                  End Date (optional)
+   784→                </label>
+   785→                <Input
+   786→                  type="datetime-local"
+   787→                  value={form.end_date}
+   788→                  onChange={(e) =>
+   789→                    setForm((f) => ({ ...f, end_date: e.target.value }))
+   790→                  }
+   791→                  className="bg-cinema-elevated border-cinema-border"
+   792→                />
+   793→              </div>
+   794→            </div>
+   795→          </div>
+   796→
+   797→          <DialogFooter>
+   798→            <Button
+   799→              variant="outline"
+   800→              onClick={() => setDialogOpen(false)}
+   801→              className="border-cinema-border"
+   802→            >
+   803→              Cancel
+   804→            </Button>
+   805→            <Button
+   806→              onClick={handleSave}
+   807→              disabled={saveMutation.isPending}
+   808→              className="bg-cinema-red hover:bg-cinema-red-hover text-white"
+   809→            >
+   810→              {saveMutation.isPending && (
+   811→                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+   812→              )}
+   813→              {editingBanner ? "Update Banner" : "Create Banner"}
+   814→            </Button>
+   815→          </DialogFooter>
+   816→        </DialogContent>
+   817→      </Dialog>
+   818→    </>
+   819→  );
+   820→}

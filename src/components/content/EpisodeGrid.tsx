@@ -72,19 +72,19 @@ function PremiumUpgradeDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-cinema-surface border-cinema-border max-w-md">
+      <DialogContent className="bg-cinema-surface border-white/[0.08] rounded-2xl max-w-md shadow-2xl shadow-black/40">
         <DialogHeader>
-          <DialogTitle className="text-foreground flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2 text-[17px]">
             <Crown className="w-5 h-5 text-cinema-gold" />
             Premium Episode
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-muted-foreground/70 text-[13px]">
             This episode is exclusive to subscribers. Upgrade to unlock
             all premium content and enjoy ad-free streaming.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-cinema-elevated rounded-lg p-4 space-y-3">
+        <div className="bg-cinema-elevated rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-cinema-gold/10 flex items-center justify-center shrink-0 mt-0.5">
               <Crown className="w-4 h-4 text-cinema-gold" />
@@ -117,13 +117,13 @@ function PremiumUpgradeDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-cinema-border text-sm"
+            className="border-cinema-border text-[13px] rounded-xl h-10"
           >
             Maybe Later
           </Button>
           <Button
             asChild
-            className="bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold text-sm"
+            className="bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold text-[13px] rounded-xl h-10 shadow-lg shadow-cinema-gold/20"
           >
             <Link href="/profile/subscription">
               <Crown className="w-4 h-4 mr-1.5" />
@@ -173,13 +173,13 @@ function EpisodeCard({
     <>
       <motion.button
         onClick={handlePlay}
-        className="group/ep w-full text-left rounded-lg overflow-hidden bg-cinema-surface border border-cinema-border hover:border-cinema-muted/30 transition-all duration-200"
+        className="group/ep w-full text-left rounded-xl overflow-hidden bg-cinema-surface border border-white/[0.06] hover:border-white/[0.12] transition-all duration-300"
         whileHover={{ scale: 1.015 }}
         whileTap={{ scale: 0.985 }}
       >
-        <div className="flex gap-3 p-2.5">
+        <div className="flex gap-4 p-3">
           {/* Thumbnail */}
-          <div className="relative w-[140px] sm:w-[160px] shrink-0 aspect-video rounded overflow-hidden bg-cinema-elevated">
+          <div className="relative w-[150px] sm:w-[170px] shrink-0 aspect-video rounded-lg overflow-hidden bg-cinema-elevated">
             {imageUrl ? (
               <img
                 src={imageUrl}
@@ -245,16 +245,16 @@ function EpisodeCard({
 
           {/* Info */}
           <div className="flex-1 min-w-0 py-0.5">
-            <h4 className="text-sm font-medium text-foreground truncate">
+            <h4 className="text-[13px] font-medium text-foreground truncate">
               {episode.title || `Episode ${episode.episode_number}`}
             </h4>
             {episode.synopsis && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+              <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">
                 {episode.synopsis}
               </p>
             )}
             {isLocked && (
-              <p className="text-xs text-cinema-gold mt-2 font-medium flex items-center gap-1">
+              <p className="text-[11px] text-cinema-gold mt-2.5 font-medium flex items-center gap-1">
                 <Crown className="w-3 h-3" />
                 Subscribe to unlock
               </p>
@@ -297,8 +297,8 @@ export function EpisodeGrid({
   const hasMore = episodes.length > INITIAL_COUNT;
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {displayEpisodes.map((episode, i) => (
           <EpisodeCard
             key={episode.id}
@@ -313,11 +313,11 @@ export function EpisodeGrid({
 
       {/* Show More / Show Less toggle */}
       {hasMore && (
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center pt-3">
           <Button
             variant="ghost"
             onClick={() => setShowAll(!showAll)}
-            className="text-muted-foreground hover:text-foreground text-sm gap-1.5"
+            className="text-muted-foreground hover:text-foreground text-[12px] gap-1.5 rounded-lg h-9"
           >
             {showAll ? (
               <>

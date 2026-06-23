@@ -146,7 +146,7 @@ export function BannerHero({ items }: BannerHeroProps) {
       <div className="absolute inset-0 bg-black/20 z-[1]" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col justify-end h-full max-w-8xl mx-auto px-6 md:px-10 pb-14 sm:pb-16">
+      <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 md:px-8 lg:px-12 pb-14 sm:pb-16">
         <AnimatePresence mode="wait">
           <motion.div
             key={`content-${item.id}`}
@@ -158,26 +158,26 @@ export function BannerHero({ items }: BannerHeroProps) {
           >
             {/* Type Badge (content only) */}
             {displayType && (
-              <Badge className="w-fit mb-3 bg-cinema-red text-white border-none text-[11px] font-semibold uppercase tracking-wider">
+              <Badge className="w-fit mb-3 rounded-lg bg-cinema-red text-white border-none text-[11px] font-semibold uppercase tracking-[0.08em]">
                 {TYPE_LABELS[displayType]}
               </Badge>
             )}
 
             {/* Custom banner indicator */}
             {!isContent && (
-              <Badge className="w-fit mb-3 bg-white/10 text-white border border-white/20 text-[11px] font-semibold uppercase tracking-wider gap-1">
+              <Badge className="w-fit mb-3 rounded-lg bg-white/10 text-white border border-white/20 text-[11px] font-semibold uppercase tracking-wider gap-1">
                 <ExternalLink className="w-3 h-3" />
                 Promotion
               </Badge>
             )}
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight tracking-tight mb-3">
               {displayTitle}
             </h1>
 
             {/* Meta row */}
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-white/70 mb-3">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-[13px] text-white/60 mb-3">
               {displayYear && (
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
@@ -199,7 +199,7 @@ export function BannerHero({ items }: BannerHeroProps) {
 
             {/* Subtitle / Synopsis */}
             {displaySubtitle && (
-              <p className="text-sm sm:text-base text-white/60 leading-relaxed mb-6 line-clamp-2 sm:line-clamp-3">
+              <p className="text-sm sm:text-[15px] text-white/50 leading-relaxed mb-6 line-clamp-2 sm:line-clamp-3">
                 {displaySubtitle}
               </p>
             )}
@@ -211,7 +211,7 @@ export function BannerHero({ items }: BannerHeroProps) {
                   <Button
                     asChild
                     size="lg"
-                    className="bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
+                    className="rounded-xl shadow-xl shadow-cinema-red/30 bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
                   >
                     <Link href={ctaLink}>
                       <Play className="w-5 h-5 mr-2" />
@@ -221,7 +221,7 @@ export function BannerHero({ items }: BannerHeroProps) {
                   <Button
                     asChild
                     size="lg"
-                    className="bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/15 font-medium"
+                    className="rounded-xl bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/15 font-medium"
                   >
                     <Link href={ctaLink}>
                       <Info className="w-5 h-5 mr-2" />
@@ -233,7 +233,7 @@ export function BannerHero({ items }: BannerHeroProps) {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
+                  className="rounded-xl shadow-xl shadow-cinema-red/30 bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
                 >
                   <Link href={ctaLink}>
                     {ctaText}
@@ -247,7 +247,7 @@ export function BannerHero({ items }: BannerHeroProps) {
 
       {/* Dot Indicators */}
       {items.length > 1 && (
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+        <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2.5">
           {items.map((_, i) => (
             <button
               key={i}
@@ -255,8 +255,8 @@ export function BannerHero({ items }: BannerHeroProps) {
               aria-label={`Go to slide ${i + 1}`}
               className={`rounded-full transition-all duration-300 ${
                 i === current
-                  ? "w-8 h-1.5 bg-cinema-red"
-                  : "w-4 h-1.5 bg-white/25 hover:bg-white/40"
+                  ? "w-8 h-[5px] bg-cinema-red"
+                  : "w-4 h-[5px] bg-white/25 hover:bg-white/40"
               }`}
             />
           ))}

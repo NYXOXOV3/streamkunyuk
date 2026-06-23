@@ -37,16 +37,16 @@ function StatCard({
   description: string;
 }) {
   return (
-    <Card className="bg-cinema-surface border-cinema-border rounded-xl hover:border-cinema-border/80 transition-colors">
+    <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-[12px] font-medium text-muted-foreground/70 uppercase tracking-[0.05em]">
           {title}
         </CardTitle>
-        <Icon className="w-5 h-5 text-cinema-muted" />
+        <Icon className="w-5 h-5 text-muted-foreground/40" />
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-foreground">{value.toLocaleString()}</div>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        <div className="text-3xl font-bold text-foreground tracking-tight">{value.toLocaleString()}</div>
+        <p className="text-[11px] text-muted-foreground/60 mt-1">{description}</p>
       </CardContent>
     </Card>
   );
@@ -63,9 +63,9 @@ export default function AdminDashboard() {
     <>
       <AdminHeader title="Dashboard" />
 
-      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+      <div className="flex-1 p-8 space-y-8 overflow-y-auto">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <StatCard
             title="Total Users"
             value={isLoading ? "..." : (stats?.totalUsers ?? 0)}
@@ -93,9 +93,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Content by Type */}
-        <Card className="bg-cinema-surface border-cinema-border rounded-xl hover:border-cinema-border/80 transition-colors">
+        <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-sm font-semibold text-foreground">
+            <CardTitle className="text-[13px] font-semibold text-foreground">
               Content by Type
             </CardTitle>
           </CardHeader>
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
-                    className="h-6 bg-muted rounded-full animate-pulse"
+                    className="h-2 bg-muted rounded-full animate-pulse"
                     style={{ width: `${80 - i * 12}%` }}
                   />
                 ))}
@@ -120,16 +120,16 @@ export default function AdminDashboard() {
 
                   return (
                     <div key={type} className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground w-24 capitalize shrink-0">
+                      <span className="text-[12px] text-muted-foreground w-24 capitalize shrink-0">
                         {type}
                       </span>
-                      <div className="flex-1 h-6 bg-cinema-elevated rounded-md overflow-hidden">
+                      <div className="flex-1 h-2 bg-cinema-elevated rounded-full overflow-hidden">
                         <div
                           className="h-full bg-cinema-red/70 rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-foreground w-8 text-right">
+                      <span className="text-[12px] font-semibold text-foreground w-8 text-right">
                         {count}
                       </span>
                     </div>
@@ -141,9 +141,9 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Imports Table */}
-        <Card className="bg-cinema-surface border-cinema-border rounded-xl hover:border-cinema-border/80 transition-colors">
+        <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-sm font-semibold text-foreground">
+            <CardTitle className="text-[13px] font-semibold text-foreground">
               Recent Imports
             </CardTitle>
           </CardHeader>
@@ -166,15 +166,15 @@ export default function AdminDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-cinema-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Title</TableHead>
-                      <TableHead className="text-muted-foreground w-28">Type</TableHead>
-                      <TableHead className="text-muted-foreground w-28">Status</TableHead>
-                      <TableHead className="text-muted-foreground w-32 text-right">Date</TableHead>
+                      <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em]">Title</TableHead>
+                      <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-28">Type</TableHead>
+                      <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-28">Status</TableHead>
+                      <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-32 text-right">Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {stats.recentImports.map((item: { id: string; title: string; type: string; status: string; created_at: string }) => (
-                      <TableRow key={item.id} className="border-cinema-border">
+                      <TableRow key={item.id} className="border-cinema-border hover:bg-white/[0.02]">
                         <TableCell className="font-medium text-foreground">
                           {item.title}
                         </TableCell>
@@ -210,11 +210,11 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Content by Status & Subscriptions by Status */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Content by Status */}
-          <Card className="bg-cinema-surface border-cinema-border rounded-xl hover:border-cinema-border/80 transition-colors">
+          <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-foreground">
+              <CardTitle className="text-[13px] font-semibold text-foreground">
                 Content by Status
               </CardTitle>
             </CardHeader>
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-6 bg-muted rounded-full animate-pulse"
+                      className="h-2 bg-muted rounded-full animate-pulse"
                       style={{ width: `${80 - i * 20}%` }}
                     />
                   ))}
@@ -245,16 +245,16 @@ export default function AdminDashboard() {
 
                     return (
                       <div key={status} className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground w-24 capitalize shrink-0">
+                        <span className="text-[12px] text-muted-foreground w-24 capitalize shrink-0">
                           {status}
                         </span>
-                        <div className="flex-1 h-6 bg-cinema-elevated rounded-md overflow-hidden">
+                        <div className="flex-1 h-2 bg-cinema-elevated rounded-full overflow-hidden">
                           <div
                             className={`h-full ${barColor} rounded-full transition-all duration-500`}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="text-sm font-medium text-foreground w-8 text-right">
+                        <span className="text-[12px] font-semibold text-foreground w-8 text-right">
                           {count}
                         </span>
                       </div>
@@ -266,9 +266,9 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Subscriptions by Status */}
-          <Card className="bg-cinema-surface border-cinema-border rounded-xl hover:border-cinema-border/80 transition-colors">
+          <Card className="bg-cinema-surface border-cinema-border rounded-2xl hover:shadow-lg hover:shadow-black/20 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-foreground">
+              <CardTitle className="text-[13px] font-semibold text-foreground">
                 Subscriptions
               </CardTitle>
             </CardHeader>
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-6 bg-muted rounded-full animate-pulse"
+                      className="h-2 bg-muted rounded-full animate-pulse"
                       style={{ width: `${80 - i * 12}%` }}
                     />
                   ))}
@@ -303,16 +303,16 @@ export default function AdminDashboard() {
 
                     return (
                       <div key={status} className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground w-24 capitalize shrink-0">
+                        <span className="text-[12px] text-muted-foreground w-24 capitalize shrink-0">
                           {status.replace("_", " ")}
                         </span>
-                        <div className="flex-1 h-6 bg-cinema-elevated rounded-md overflow-hidden">
+                        <div className="flex-1 h-2 bg-cinema-elevated rounded-full overflow-hidden">
                           <div
                             className={`h-full ${barColor} rounded-full transition-all duration-500`}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="text-sm font-medium text-foreground w-8 text-right">
+                        <span className="text-[12px] font-semibold text-foreground w-8 text-right">
                           {count}
                         </span>
                       </div>

@@ -12,6 +12,7 @@
  *   - Infinite-scroll-style "Load More"
  */
 
+import { Suspense } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, Film, X, ArrowLeft } from "lucide-react";
@@ -52,6 +53,18 @@ interface SearchResponse {
 // ---------------------------------------------------------------------------
 
 export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchPageFallback />}>
+      <SearchContent />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Search Content (uses useSearchParams, needs Suspense)
+// ---------------------------------------------------------------------------
+
+function SearchContent() {
   const searchParams = useSearchParams();
 
   // State
@@ -211,24 +224,24 @@ export default function SearchPage() {
   // -------------------------------------------------------------------------
 
   return (
-    <div className="min-h-[80vh] px-6 md:px-10 lg:px-0 max-w-8xl mx-auto pt-8 pb-24">
+    <div className="min-h-[80vh] px-6 md:px-10 lg:px-0 max-w-[1400px] mx-auto pt-8 pb-24">
       {/* ---- Search Header ---- */}
       <div className="max-w-2xl mx-auto mb-8">
         {/* Search input */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search for movies, series, anime, and more..."
-            className="h-14 pl-12 pr-12 text-base md:text-lg bg-cinema-elevated border-cinema-border rounded-xl focus-visible:ring-cinema-red/50 placeholder:text-muted-foreground/60"
+            className="h-[56px] pl-13 pr-13 text-base md:text-lg bg-cinema-elevated border-cinema-border rounded-2xl focus-visible:ring-cinema-red/50 placeholder:text-muted-foreground/60"
           />
           {query && (
             <button
               onClick={handleClear}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-cinema-border/50 transition-colors"
+              className="absolute right-5 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-cinema-border/50 transition-colors"
               aria-label="Clear search"
             >
               <X className="w-4 h-4" />
@@ -242,10 +255,10 @@ export default function SearchPage() {
             <button
               key={filter.value}
               onClick={() => handleTypeChange(filter.value)}
-              className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-all duration-200 ${
+              className={`px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                 activeType === filter.value
-                  ? "bg-cinema-red text-white shadow-md shadow-cinema-red/25"
-                  : "bg-cinema-elevated text-muted-foreground hover:text-foreground hover:bg-cinema-border/60 border border-cinema-border"
+                  ? "bg-cinema-red text-white shadow-lg shadow-cinema-red/20"
+                  : "bg-cinema-elevated text-muted-foreground hover:text-foreground hover:bg-cinema-border/60 border border-cinema-border/80 rounded-lg"
               }`}
             >
               {filter.label}
@@ -255,10 +268,10 @@ export default function SearchPage() {
       </div>
 
       {/* ---- Results Area ---- */}
-      <div className="max-w-8xl mx-auto">
+      <div className="max-w-[1400px] mx-auto">
         {/* Results header */}
         {debouncedQuery && !isLoading && results.length > 0 && (
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
             <p className="text-sm text-muted-foreground">
               <span className="text-foreground font-semibold">{totalCount}</span>{" "}
               {totalCount === 1 ? "result" : "results"} for &ldquo;
@@ -280,10 +293,10 @@ export default function SearchPage() {
 
         {/* Loading skeleton (initial load) */}
         {isLoading && results.length === 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 md:gap-5">
             {Array.from({ length: 14 }).map((_, i) => (
               <div key={i} className="space-y-2">
-                <Skeleton className="aspect-[2/3] rounded-md bg-cinema-elevated" />
+                <Skeleton className="aspect-[2/3] rounded-xl bg-cinema-elevated" />
                 <Skeleton className="h-4 w-3/4 bg-cinema-elevated" />
                 <Skeleton className="h-3 w-1/2 bg-cinema-elevated" />
               </div>
@@ -304,7 +317,7 @@ export default function SearchPage() {
 
         {/* Results grid */}
         {!isLoading && results.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 md:gap-5">
             {results.map((content, index) => (
               <ContentCard key={content.id} content={content} index={index} />
             ))}
@@ -317,7 +330,7 @@ export default function SearchPage() {
           !error &&
           results.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-full bg-cinema-elevated flex items-center justify-center mb-4">
+              <div className="w-20 h-20 rounded-full bg-cinema-elevated flex items-center justify-center mb-4">
                 <Film className="w-7 h-7 text-muted-foreground" />
               </div>
               <p className="text-foreground font-medium mb-1">
@@ -333,8 +346,8 @@ export default function SearchPage() {
         {/* Empty state (no query) */}
         {!debouncedQuery && !isLoading && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-full bg-cinema-elevated flex items-center justify-center mb-6">
-              <Search className="w-9 h-9 text-muted-foreground/50" />
+            <div className="w-24 h-24 rounded-full bg-cinema-elevated flex items-center justify-center mb-6 animate-pulse">
+              <Search className="w-10 h-10 text-muted-foreground/50" />
             </div>
             <p className="text-lg font-medium text-foreground mb-2">
               Search for movies, series, anime, and more
@@ -348,7 +361,7 @@ export default function SearchPage() {
 
         {/* Load more trigger */}
         {(hasMore || isLoading) && results.length > 0 && (
-          <div ref={loaderRef} className="flex items-center justify-center py-10">
+          <div ref={loaderRef} className="flex items-center justify-center py-12">
             {isLoading && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -357,6 +370,34 @@ export default function SearchPage() {
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page-level fallback
+// ---------------------------------------------------------------------------
+
+function SearchPageFallback() {
+  return (
+    <div className="min-h-[80vh] px-5 md:px-8 lg:px-0 max-w-[1400px] mx-auto pt-10 pb-24">
+      <div className="max-w-2xl mx-auto mb-8">
+        <Skeleton className="h-[56px] w-full rounded-2xl bg-cinema-elevated" />
+        <div className="flex gap-2 mt-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-20 rounded-lg bg-cinema-elevated" />
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 md:gap-5">
+        {Array.from({ length: 14 }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="aspect-[2/3] rounded-xl bg-cinema-elevated" />
+            <Skeleton className="h-4 w-3/4 rounded-lg bg-cinema-elevated" />
+            <Skeleton className="h-3 w-1/2 rounded-lg bg-cinema-elevated" />
+          </div>
+        ))}
       </div>
     </div>
   );

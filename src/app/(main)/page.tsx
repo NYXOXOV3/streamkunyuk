@@ -239,7 +239,7 @@ async function HomeContent() {
   const data = await fetchHomeData();
 
   return (
-    <div className="-mt-16 relative z-10 space-y-2">
+    <div className="-mt-16 relative z-10 space-y-0">
       {/* Continue Watching (only if user has history) */}
       {data.continueWatching.length > 0 && (
         <ContinueWatchingRow items={data.continueWatching} />
@@ -286,13 +286,13 @@ function ContinueWatchingRow({
 }) {
   return (
     <section className="relative py-4">
-      <div className="mb-3 px-6 md:px-10 lg:px-0">
-        <h2 className="text-base sm:text-lg font-semibold text-foreground">
+      <div className="mb-3 px-5 md:px-8 lg:px-0">
+        <h2 className="text-base sm:text-[17px] font-semibold text-foreground">
           Continue Watching
         </h2>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth px-6 md:px-10 lg:px-0">
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth px-5 md:px-8 lg:px-0">
         {items.map((item) => {
           const progress =
             item.duration_seconds > 0
@@ -308,9 +308,9 @@ function ContinueWatchingRow({
             <Link
               key={item.episode.id}
               href={`/watch/${item.content.id}/${item.episode.id}`}
-              className="shrink-0 w-[260px] sm:w-[300px] group"
+              className="shrink-0 w-[280px] sm:w-[320px] group"
             >
-              <div className="relative aspect-video rounded-md overflow-hidden bg-cinema-elevated">
+              <div className="relative aspect-video rounded-xl overflow-hidden bg-cinema-elevated border border-white/[0.06]">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -325,13 +325,13 @@ function ContinueWatchingRow({
 
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-cinema-red/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300">
+                  <div className="w-11 h-11 rounded-full bg-cinema-red/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300">
                     <Play className="w-4 h-4 text-white ml-0.5" />
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20">
+                <div className="absolute bottom-0 inset-x-0 h-[3px] bg-white/20">
                   <div
                     className="h-full bg-cinema-red transition-all"
                     style={{ width: `${progress}%` }}
@@ -340,10 +340,10 @@ function ContinueWatchingRow({
               </div>
 
               <div className="mt-1.5 px-0.5">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="text-[13px] font-medium text-foreground truncate">
                   {item.content.title}
                 </p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                   <span>
                     E{item.episode.episode_number}
                     {item.episode.title
@@ -378,7 +378,7 @@ export default function HomePage() {
       </Suspense>
 
       {/* Carousels — loaded with Suspense + skeleton */}
-      <div className="max-w-8xl mx-auto">
+      <div className="max-w-[1400px] mx-auto">
         <Suspense fallback={<HomeSkeleton />}>
           <HomeContent />
         </Suspense>
@@ -465,7 +465,7 @@ function HeroBannerFallback() {
     <section className="relative w-full h-[65vh] sm:h-[70vh] min-h-[420px] max-h-[720px] overflow-hidden bg-cinema-surface">
       <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-cinema-surface via-cinema-elevated to-cinema-surface bg-[length:200%_100%]" />
       <div className="absolute inset-0 cinema-gradient-bottom" />
-      <div className="relative z-10 flex flex-col justify-end h-full max-w-8xl mx-auto px-6 md:px-10 pb-14 sm:pb-16">
+      <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 md:px-8 lg:px-12 pb-14 sm:pb-16">
         <div className="max-w-xl space-y-3">
           <div className="h-5 w-20 rounded bg-white/10" />
           <div className="h-10 w-96 rounded bg-white/10" />

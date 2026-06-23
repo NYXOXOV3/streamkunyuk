@@ -68,21 +68,21 @@ export default function ContentListPage() {
     <>
       <AdminHeader title="Content Management" />
 
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+      <div className="flex-1 p-8 space-y-4 overflow-y-auto">
         {/* Actions bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search content..."
-                className="h-9 pl-9 w-56 bg-cinema-elevated border-cinema-border text-sm"
+                className="h-10 rounded-xl pl-9 w-64 bg-cinema-elevated border-cinema-border text-sm"
               />
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-9 w-36 bg-cinema-elevated border-cinema-border text-sm">
+              <SelectTrigger className="h-10 rounded-xl w-36 bg-cinema-elevated border-cinema-border text-sm">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -95,7 +95,7 @@ export default function ContentListPage() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 w-32 bg-cinema-elevated border-cinema-border text-sm">
+              <SelectTrigger className="h-10 rounded-xl w-32 bg-cinema-elevated border-cinema-border text-sm">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -106,14 +106,14 @@ export default function ContentListPage() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs">
+          <div className="flex items-center gap-3">
+            <Button asChild size="sm" variant="outline" className="rounded-xl border-cinema-border text-xs">
               <Link href="/admin/content/tmdb-import">
                 <Download className="w-3.5 h-3.5 mr-1.5" />
                 TMDB Import
               </Link>
             </Button>
-            <Button asChild size="sm" className="bg-cinema-red hover:bg-cinema-red-hover text-white text-xs">
+            <Button asChild size="sm" className="rounded-xl shadow-lg shadow-cinema-red/20 bg-cinema-red hover:bg-cinema-red-hover text-white text-xs">
               <Link href="/admin/content/new">
                 <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Add Content
@@ -124,35 +124,35 @@ export default function ContentListPage() {
 
         {/* Error state */}
         {error && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-sm text-destructive">
             Failed to load content: {(error as Error).message}
           </div>
         )}
 
         {/* Table */}
-        <Card className="bg-cinema-surface border-cinema-border">
+        <Card className="rounded-2xl overflow-hidden bg-cinema-surface border-cinema-border">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="border-cinema-border hover:bg-transparent">
-                  <TableHead className="text-xs text-muted-foreground">Title</TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-24">Type</TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-24">Status</TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-20 text-center">Rating</TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-28 text-center">Access</TableHead>
-                  <TableHead className="text-xs text-muted-foreground w-28 text-right">Actions</TableHead>
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em]">Title</TableHead>
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-24">Type</TableHead>
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-24">Status</TableHead>
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-20 text-center">Rating</TableHead>
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-28 text-center">Access</TableHead>
+                  <TableHead className="text-[11px] text-muted-foreground/60 uppercase tracking-[0.05em] w-28 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   [...Array(5)].map((_, i) => (
                     <TableRow key={i} className="border-cinema-border">
-                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-20 mx-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-48 rounded-lg" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 rounded-lg" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 rounded-lg" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-8 mx-auto rounded-lg" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-20 mx-auto rounded-lg" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-20 ml-auto rounded-lg" /></TableCell>
                     </TableRow>
                   ))
                 ) : contents.length === 0 ? (
@@ -163,7 +163,7 @@ export default function ContentListPage() {
                   </TableRow>
                 ) : (
                   contents.map((item) => (
-                    <TableRow key={item.id} className="border-cinema-border hover:bg-accent/50">
+                    <TableRow key={item.id} className="border-cinema-border hover:bg-white/[0.02]">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {item.poster_url && (
@@ -231,7 +231,7 @@ export default function ContentListPage() {
 
         {/* Count */}
         {!isLoading && (
-          <p className="text-xs text-muted-foreground text-right">
+          <p className="text-[11px] text-muted-foreground/50 text-right">
             {contents.length} item{contents.length !== 1 ? "s" : ""}
           </p>
         )}

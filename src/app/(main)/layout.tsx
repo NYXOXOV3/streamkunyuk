@@ -20,7 +20,7 @@ export default function MainLayout({
       <Navbar />
 
       {/* Main content — bottom padding for mobile nav (h-14) */}
-      <main className="flex-1 pb-14 lg:pb-0">{children}</main>
+      <main className="flex-1 pb-[68px] lg:pb-0">{children}</main>
 
       <div className="hidden lg:block mt-auto">
         <Footer />

@@ -15,13 +15,14 @@ export default function AuthLayout({
       {/* Background ambient effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Subtle grid pattern overlay for texture */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
-        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-cinema-red/3 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/3 right-1/3 w-[400px] h-[400px] bg-purple-500/3 rounded-full blur-[100px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.015)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-cinema-red/[0.04] rounded-full blur-[140px]" />
+        <div className="absolute bottom-1/3 right-1/3 w-[400px] h-[400px] bg-purple-500/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/2 w-[300px] h-[300px] bg-blue-500/[0.02] rounded-full blur-[100px]" />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full animate-fade-in-up">{children}</div>
+      <div className="relative z-10 w-full translate-y-1 animate-fade-in-up">{children}</div>
     </div>
   );
 }

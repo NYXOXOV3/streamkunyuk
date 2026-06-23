@@ -75,7 +75,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full h-14 md:h-16 bg-cinema-bg/80 backdrop-blur-xl border-b border-cinema-border/50">
+      <header className="sticky top-0 z-50 w-full h-16 md:h-[68px] bg-cinema-bg/70 backdrop-blur-2xl border-b border-white/[0.06]">
         <nav className="flex items-center h-full max-w-8xl mx-auto px-4 md:px-6">
           {/* Left: Hamburger + Logo */}
           <div className="flex items-center gap-2.5">
@@ -92,8 +92,8 @@ export function Navbar() {
             </button>
 
             <Link href="/" className="flex items-center gap-2 group shrink-0">
-              <div className="w-7 h-7 rounded-md bg-cinema-red flex items-center justify-center shadow-lg shadow-cinema-red/20">
-                <Play className="w-3.5 h-3.5 text-white ml-0.5" />
+              <div className="w-8 h-8 rounded-lg bg-cinema-red flex items-center justify-center shadow-lg shadow-cinema-red/20">
+                <Play className="w-4 h-4 text-white ml-0.5" />
               </div>
               <span className="text-base font-bold text-white tracking-tight hidden sm:inline group-hover:text-cinema-red transition-colors">
                 StreamVault
@@ -102,7 +102,7 @@ export function Navbar() {
           </div>
 
           {/* Center: Nav links (desktop) */}
-          <div className="hidden lg:flex items-center gap-0.5 ml-8">
+          <div className="hidden lg:flex items-center gap-1 ml-8">
             {NAV_LINKS.map(({ href, label }) => (
               <NavLink key={href} href={label === "Home" ? "/" : href} isActive={isActivePath(pathname, href)}>
                 {label}
@@ -117,7 +117,7 @@ export function Navbar() {
                 closeMobileMenu();
                 router.push("/search");
               }}
-              className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
@@ -129,7 +129,7 @@ export function Navbar() {
                   <Button
                     onClick={() => router.push("/profile/subscription")}
                     size="sm"
-                    className="bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold text-xs px-3 hidden sm:flex rounded-full"
+                    className="bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold text-xs px-3 hidden sm:flex rounded-full shadow-md shadow-cinema-gold/20"
                   >
                     <Crown className="w-3.5 h-3.5 mr-1.5" />
                     Subscribe
@@ -138,8 +138,8 @@ export function Navbar() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 p-0.5 rounded-full hover:ring-2 hover:ring-cinema-red/40 transition-all">
-                      <Avatar className="h-8 w-8 border-2 border-cinema-border">
+                    <button className="flex items-center gap-2 p-0.5 rounded-full ring-2 ring-transparent hover:ring-cinema-red/40 transition-all">
+                      <Avatar className="h-9 w-9 border-2 border-cinema-border">
                         <AvatarImage
                           src={profile?.avatar_url ?? undefined}
                           alt={profile?.display_name ?? "User"}
@@ -153,7 +153,7 @@ export function Navbar() {
 
                   <DropdownMenuContent
                     align="end"
-                    className="w-52 bg-cinema-surface border-cinema-border rounded-xl"
+                    className="w-52 bg-cinema-surface border-cinema-border rounded-xl shadow-xl shadow-black/30"
                   >
                     <div className="px-3 py-2.5">
                       <p className="text-sm font-medium text-foreground truncate">
@@ -229,14 +229,14 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   asChild
-                  className="text-foreground hover:text-foreground hover:bg-white/5 text-sm hidden sm:flex rounded-full"
+                  className="text-foreground hover:text-foreground hover:bg-white/5 text-sm hidden sm:flex rounded-full px-5"
                 >
                   <Link href="/login">Sign In</Link>
                 </Button>
                 <Button
                   asChild
                   size="sm"
-                  className="bg-cinema-red hover:bg-cinema-red-hover text-white text-sm rounded-full"
+                  className="bg-cinema-red hover:bg-cinema-red-hover text-white text-sm rounded-full px-5"
                 >
                   <Link href="/register">Get Started</Link>
                 </Button>
@@ -248,11 +248,11 @@ export function Navbar() {
 
       {/* Mobile Menu Sheet */}
       <Sheet open={isMobileMenuOpen} onOpenChange={(open) => !open && closeMobileMenu()}>
-        <SheetContent side="left" className="w-72 bg-cinema-surface/80 backdrop-blur-xl border-cinema-border p-0">
+        <SheetContent side="left" className="w-72 bg-cinema-bg/90 backdrop-blur-2xl border-cinema-border p-0">
           <SheetHeader className="px-5 pt-6 pb-4 border-b border-cinema-border">
             <SheetTitle className="flex items-center gap-2 text-left">
-              <div className="w-7 h-7 rounded-md bg-cinema-red flex items-center justify-center shadow-lg shadow-cinema-red/20">
-                <Play className="w-3.5 h-3.5 text-white ml-0.5" />
+              <div className="w-8 h-8 rounded-lg bg-cinema-red flex items-center justify-center shadow-lg shadow-cinema-red/20">
+                <Play className="w-4 h-4 text-white ml-0.5" />
               </div>
               <span className="text-base font-bold text-white">StreamVault</span>
             </SheetTitle>
@@ -265,7 +265,7 @@ export function Navbar() {
                 href={href}
                 onClick={closeMobileMenu}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-colors",
                   isActivePath(pathname, href)
                     ? "bg-cinema-red/10 text-cinema-red"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/5",
@@ -278,8 +278,8 @@ export function Navbar() {
 
             {isAuthenticated && (
               <>
-                <div className="my-3 border-t border-cinema-border" />
-                <p className="px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="my-4 border-t border-white/[0.06]" />
+                <p className="px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                   Account
                 </p>
                 <MobileMenuLink href="/my-list" icon={Bookmark} label="My List" pathname={pathname} onClose={closeMobileMenu} />
@@ -346,7 +346,7 @@ export function Navbar() {
 }
 
 // ---------------------------------------------------------------------------
-// NavLink (desktop — with active state)
+// NavLink (desktop — with active state + bottom indicator)
 // ---------------------------------------------------------------------------
 
 function NavLink({
@@ -362,10 +362,10 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "text-[13px] px-3 py-1.5 rounded-md transition-colors",
+        "relative text-[13px] px-4 py-2 rounded-lg font-medium transition-colors",
         isActive
-          ? "text-white font-medium"
-          : "text-muted-foreground font-medium hover:text-foreground hover:bg-white/5",
+          ? "text-white after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-0.5 after:bg-cinema-red after:rounded-full"
+          : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06]",
       )}
     >
       {children}
@@ -397,7 +397,7 @@ function MobileMenuLink({
       href={href}
       onClick={onClose}
       className={cn(
-        "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+        "flex items-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-colors",
         highlight && isActivePath(pathname, href)
           ? "bg-cinema-gold/10 text-cinema-gold"
           : isActivePath(pathname, href)

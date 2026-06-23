@@ -169,7 +169,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
               variant="ghost"
               size="sm"
               asChild
-              className="text-white/80 hover:text-white hover:bg-white/10 -ml-2"
+              className="rounded-xl bg-black/30 backdrop-blur-sm border border-white/10 h-10 px-4 text-sm text-white/80 hover:text-white hover:bg-white/10 -ml-2"
             >
               <Link href="/">
                 <ArrowLeft className="w-4 h-4 mr-1" />
@@ -185,7 +185,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold"
+                  className="rounded-xl bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold"
                 >
                   <Link href="/profile/subscription">
                     <Crown className="w-5 h-5 mr-2" />
@@ -197,7 +197,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                   <Button
                     asChild
                     size="lg"
-                    className="bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
+                    className="rounded-xl bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
                   >
                     <Link href={`/watch/${content.id}`}>
                       <Play className="w-5 h-5 mr-2" />
@@ -208,7 +208,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                     asChild
                     size="lg"
                     variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
+                    className="rounded-xl border-white/20 text-white hover:bg-white/10"
                   >
                     <a
                       href={content.trailer_url}
@@ -224,7 +224,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
+                  className="rounded-xl bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
                 >
                   <Link href={`/watch/${content.id}`}>
                     <Play className="w-5 h-5 mr-2" />
@@ -238,8 +238,8 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
       </div>
 
       {/* Content Info */}
-      <div className="max-w-8xl mx-auto px-6 md:px-10 -mt-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+      <div className="max-w-[1400px] mx-auto px-5 md:px-8 lg:px-12 -mt-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
           {/* Poster (sidebar on desktop, hidden on mobile since backdrop is shown) */}
           <div className="hidden lg:block">
             <div className="sticky top-20">
@@ -247,10 +247,10 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                 <img
                   src={content.poster_url}
                   alt={content.title}
-                  className="w-full rounded-lg shadow-2xl shadow-black/50 border border-cinema-border"
+                  className="w-full rounded-xl shadow-2xl shadow-black/60 border border-cinema-border"
                 />
               ) : (
-                <div className="aspect-[2/3] rounded-lg bg-cinema-surface border border-cinema-border flex items-center justify-center">
+                <div className="aspect-[2/3] rounded-xl bg-cinema-surface border border-cinema-border flex items-center justify-center">
                   <TypeIcon className="w-12 h-12 text-muted-foreground/20" />
                 </div>
               )}
@@ -262,19 +262,19 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
             {/* Title + Meta */}
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <Badge className="bg-cinema-red text-white border-none text-[11px] font-semibold uppercase tracking-wider">
+                <Badge className="rounded-lg bg-cinema-red text-white border-none text-[11px] font-semibold uppercase tracking-wider">
                   <TypeIcon className="w-3 h-3 mr-1" />
                   {TYPE_LABELS[content.type]}
                 </Badge>
                 {content.is_premium_only && (
-                  <Badge className="bg-cinema-gold/90 text-black border-none text-[11px] font-semibold gap-0.5">
+                  <Badge className="rounded-lg bg-cinema-gold/90 text-black border-none text-[11px] font-semibold gap-0.5">
                     <Crown className="w-3 h-3" />
                     Premium
                   </Badge>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight tracking-tight">
                 {content.title}
               </h1>
 
@@ -324,7 +324,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                     <Badge
                       key={cat.id}
                       variant="outline"
-                      className="border-cinema-border text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-default"
+                      className="rounded-lg border-cinema-border text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-default"
                     >
                       {cat.name}
                     </Badge>
@@ -342,7 +342,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
             {hasEpisodes && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">
+                  <h2 className="text-lg font-semibold tracking-tight text-foreground">
                     Episodes
                     {episodes.length > 0 && (
                       <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -354,7 +354,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
 
                   {/* Premium warning for non-subscribers */}
                   {content.is_premium_only && !isSubscriber && (
-                    <Badge className="bg-cinema-gold/10 text-cinema-gold border-cinema-gold/30 text-xs gap-1">
+                    <Badge className="rounded-lg bg-cinema-gold/10 text-cinema-gold border-cinema-gold/30 text-xs gap-1">
                       <Lock className="w-3 h-3" />
                       Some episodes require subscription
                     </Badge>
@@ -370,7 +370,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                     isSubscriber={isSubscriber}
                   />
                 ) : (
-                  <div className="text-center py-12 rounded-lg bg-cinema-surface border border-cinema-border">
+                  <div className="text-center py-12 rounded-xl bg-cinema-surface border border-cinema-border">
                     <p className="text-sm text-muted-foreground">
                       No episodes available yet
                     </p>
@@ -417,40 +417,40 @@ function ContentDetailSkeleton() {
       </div>
 
       {/* Content skeleton */}
-      <div className="max-w-8xl mx-auto px-6 md:px-10 -mt-8 space-y-6 pb-12">
+      <div className="max-w-[1400px] mx-auto px-5 md:px-8 lg:px-12 -mt-8 space-y-6 pb-12">
         <div className="space-y-3">
           <div className="flex gap-2">
-            <Skeleton className="h-6 w-16 rounded-full" />
-            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-6 w-16 rounded-xl" />
+            <Skeleton className="h-6 w-20 rounded-xl" />
           </div>
-          <Skeleton className="h-10 w-96 max-w-full" />
-          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-10 w-96 max-w-full rounded-xl" />
+          <Skeleton className="h-4 w-64 rounded-xl" />
           <div className="flex gap-4 mt-3">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16 rounded-xl" />
+            <Skeleton className="h-4 w-20 rounded-xl" />
+            <Skeleton className="h-4 w-24 rounded-xl" />
           </div>
           <div className="space-y-2 mt-6">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-full rounded-xl" />
+            <Skeleton className="h-4 w-full rounded-xl" />
+            <Skeleton className="h-4 w-3/4 rounded-xl" />
           </div>
         </div>
 
         {/* Episode skeleton */}
         <div className="space-y-3">
-          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-6 w-32 rounded-xl" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="flex gap-3 p-2.5 rounded-lg bg-cinema-surface border border-cinema-border"
+                className="flex gap-3 p-2.5 rounded-xl bg-cinema-surface border border-cinema-border"
               >
-                <Skeleton className="w-[160px] aspect-video rounded" />
+                <Skeleton className="w-[160px] aspect-video rounded-xl" />
                 <div className="flex-1 space-y-2 py-0.5">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
+                  <Skeleton className="h-4 w-3/4 rounded-xl" />
+                  <Skeleton className="h-3 w-full rounded-xl" />
+                  <Skeleton className="h-3 w-2/3 rounded-xl" />
                 </div>
               </div>
             ))}

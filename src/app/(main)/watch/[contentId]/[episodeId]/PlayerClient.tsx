@@ -496,7 +496,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
               {isAuthenticated ? (
                 <Link
                   href="/profile/subscription"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold transition-colors shadow-lg shadow-cinema-gold/20"
                 >
                   <Crown className="w-5 h-5" />
                   Subscribe to Watch
@@ -504,7 +504,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
               ) : (
                 <Link
                   href="/auth/login"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold transition-colors shadow-lg shadow-cinema-gold/20"
                 >
                   <Crown className="w-5 h-5" />
                   Sign In to Subscribe
@@ -550,7 +550,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
             {/* Episode list toggle */}
             <button
               onClick={() => setShowEpisodeList((v) => !v)}
-              className={`flex-shrink-0 p-2 rounded-lg transition-colors ${
+              className={`flex-shrink-0 p-2.5 rounded-xl transition-colors ${
                 showEpisodeList
                   ? "bg-cinema-red text-white"
                   : "bg-white/10 hover:bg-white/20 text-white"
@@ -720,10 +720,10 @@ export default function PlayerClient({ data }: PlayerClientProps) {
           />
         )}
 
-        <div className="h-full bg-cinema-bg border-l border-cinema-border flex flex-col">
+        <div className="h-full bg-cinema-bg border-l border-white/[0.06] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-cinema-border">
-            <h2 className="text-sm font-semibold text-foreground truncate">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+            <h2 className="text-[13px] font-semibold text-foreground truncate">
               Episodes
               <span className="text-muted-foreground font-normal ml-1.5">
                 {episodes.length}
@@ -731,7 +731,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
             </h2>
             <button
               onClick={() => setShowEpisodeList(false)}
-              className="p-1.5 rounded-md hover:bg-cinema-surface text-muted-foreground hover:text-foreground transition-colors"
+              className="p-2 rounded-xl hover:bg-cinema-surface text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Close episode list"
             >
               <X className="w-4 h-4" />
@@ -754,7 +754,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
                       goToEpisode(ep);
                     }}
                     disabled={epLocked}
-                    className={`w-full flex items-start gap-3 p-2.5 rounded-lg text-left transition-colors group ${
+                    className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors group ${
                       isActive
                         ? "bg-cinema-red/15 border border-cinema-red/30"
                         : epLocked
@@ -763,7 +763,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
                     }`}
                   >
                     {/* Thumbnail */}
-                    <div className="relative flex-shrink-0 w-[120px] aspect-video rounded-md overflow-hidden bg-cinema-surface">
+                    <div className="relative flex-shrink-0 w-[130px] aspect-video rounded-lg overflow-hidden bg-cinema-surface">
                       {ep.thumbnail_url ? (
                         <img
                           src={ep.thumbnail_url}

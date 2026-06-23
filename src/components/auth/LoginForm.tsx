@@ -102,10 +102,10 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto rounded-2xl bg-cinema-surface border-cinema-border shadow-2xl">
+    <Card className="w-full max-w-md mx-auto rounded-2xl bg-cinema-surface/95 backdrop-blur-xl border-cinema-border shadow-2xl shadow-black/40">
       <CardHeader className="text-center pb-2 space-y-4 px-8 pt-8">
         <Link href="/" className="inline-flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-lg bg-cinema-red flex items-center justify-center glow-red">
+          <div className="w-11 h-11 rounded-xl bg-cinema-red flex items-center justify-center glow-red">
             <Play className="w-5 h-5 text-white ml-0.5" />
           </div>
           <span className="text-2xl font-bold text-white tracking-tight group-hover:text-cinema-red transition-colors">
@@ -113,14 +113,14 @@ export function LoginForm() {
           </span>
         </Link>
         <div>
-          <h1 className="text-xl font-semibold text-white">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to continue watching</p>
+          <h1 className="text-[22px] font-semibold text-white">Welcome back</h1>
+          <p className="text-[13px] text-muted-foreground/70 mt-1">Sign in to continue watching</p>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-5 px-8">
         {serverError && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-sm text-destructive">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-sm text-destructive">
             {serverError}
           </div>
         )}
@@ -133,7 +133,7 @@ export function LoginForm() {
               <Input
                 id="email" name="email" type="email" placeholder="you@example.com"
                 required autoComplete="email"
-                className="pl-10 h-11 rounded-lg bg-cinema-elevated border-cinema-border text-foreground placeholder:text-muted-foreground focus-visible:ring-cinema-red"
+                className="pl-10 h-12 rounded-xl bg-cinema-elevated border-cinema-border text-foreground placeholder:text-muted-foreground focus-visible:ring-cinema-red/40 focus-visible:border-cinema-red/50"
               />
             </div>
           </div>
@@ -141,7 +141,7 @@ export function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password" className="text-foreground text-sm">Password</Label>
-              <Link href="/forgot-password" className="text-xs text-cinema-red hover:text-cinema-red-hover transition-colors">
+              <Link href="/forgot-password" className="text-[12px] text-cinema-red hover:text-cinema-red-hover transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -151,7 +151,7 @@ export function LoginForm() {
                 id="password" name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password" required autoComplete="current-password"
-                className="pl-10 pr-10 h-11 rounded-lg bg-cinema-elevated border-cinema-border text-foreground placeholder:text-muted-foreground focus-visible:ring-cinema-red"
+                className="pl-10 pr-10 h-12 rounded-xl bg-cinema-elevated border-cinema-border text-foreground placeholder:text-muted-foreground focus-visible:ring-cinema-red/40 focus-visible:border-cinema-red/50"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
@@ -161,7 +161,7 @@ export function LoginForm() {
           </div>
 
           <Button type="submit" disabled={isSubmitting}
-            className="w-full h-11 rounded-lg bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold text-sm">
+            className="w-full h-12 rounded-xl bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold text-[15px]">
             {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Sign In
           </Button>
@@ -175,7 +175,7 @@ export function LoginForm() {
         </div>
 
         <Button type="button" variant="outline" onClick={handleGoogleSignIn}
-          className="w-full h-11 rounded-lg bg-cinema-elevated border-cinema-border text-foreground hover:bg-accent hover:text-foreground font-medium text-sm">
+          className="w-full h-12 rounded-xl bg-cinema-elevated border-cinema-border text-foreground hover:bg-cinema-elevated/80 hover:text-foreground font-medium text-sm">
           <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -187,7 +187,7 @@ export function LoginForm() {
       </CardContent>
 
       <CardFooter className="justify-center px-8 pb-8">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link href="/register" className="text-cinema-red hover:text-cinema-red-hover font-medium transition-colors">Sign up free</Link>
         </p>

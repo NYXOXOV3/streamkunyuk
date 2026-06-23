@@ -60,16 +60,16 @@ function SidebarNavLink({
       href={href}
       onClick={onClick}
       className={cn(
-        "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+        "group relative flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-colors",
         isActive
-          ? "bg-cinema-red/10 text-cinema-red before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-cinema-red before:rounded-r"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent",
+          ? "bg-cinema-red/[0.08] text-cinema-red before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-6 before:bg-cinema-red before:rounded-r"
+          : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
       )}
     >
       <Icon className="w-5 h-5 shrink-0" />
       {collapsed !== false && <span className="truncate">{label}</span>}
       {collapsed === true && (
-        <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 rounded-md bg-foreground text-background text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+        <span className="pointer-events-none absolute left-full ml-4 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
           {label}
         </span>
       )}
@@ -88,14 +88,14 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col h-screen sticky top-0 border-r border-cinema-border bg-sidebar transition-all duration-200",
-        isSidebarOpen ? "w-56" : "w-16",
+        "hidden md:flex flex-col h-screen sticky top-0 border-r border-cinema-border bg-cinema-bg transition-all duration-200",
+        isSidebarOpen ? "w-60" : "w-[68px]",
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2 h-14 px-4 border-b border-cinema-border shrink-0">
-        <div className="w-7 h-7 rounded-md bg-cinema-red flex items-center justify-center shrink-0 shadow-md shadow-cinema-red/20">
-          <Play className="w-3.5 h-3.5 text-white ml-0.5" />
+      <div className="flex items-center gap-2 h-[68px] px-4 border-b border-cinema-border shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-cinema-red flex items-center justify-center shrink-0 shadow-md shadow-cinema-red/20">
+          <Play className="w-4 h-4 text-white ml-0.5" />
         </div>
         {isSidebarOpen && (
           <div className="flex items-center gap-1 overflow-hidden">
@@ -129,12 +129,12 @@ export function AdminSidebar() {
       </nav>
 
       {/* Collapse toggle */}
-      <div className="p-2 border-t border-cinema-border shrink-0">
+      <div className="p-3 border-t border-cinema-border shrink-0">
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="w-full justify-center text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
+          className="w-full justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.04] rounded-lg"
           aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isSidebarOpen ? (
@@ -168,11 +168,11 @@ export function AdminMobileNav() {
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 bg-cinema-surface border-cinema-border p-0 rounded-xl">
-          <SheetHeader className="px-4 pt-5 pb-3 border-b border-cinema-border">
+        <SheetContent side="left" className="w-64 bg-cinema-bg/95 backdrop-blur-2xl p-0 rounded-r-2xl">
+          <SheetHeader className="px-5 pt-6 pb-4 border-b border-cinema-border">
             <SheetTitle className="flex items-center gap-2 text-left">
-              <div className="w-7 h-7 rounded-md bg-cinema-red flex items-center justify-center shadow-md shadow-cinema-red/20">
-                <Play className="w-3.5 h-3.5 text-white ml-0.5" />
+              <div className="w-8 h-8 rounded-lg bg-cinema-red flex items-center justify-center shadow-md shadow-cinema-red/20">
+                <Play className="w-4 h-4 text-white ml-0.5" />
               </div>
               <span className="text-sm font-bold text-white">Admin Panel</span>
               <ShieldCheck className="w-3.5 h-3.5 text-cinema-gold" />

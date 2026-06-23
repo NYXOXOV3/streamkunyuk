@@ -135,21 +135,21 @@ export default function EditContentPage() {
     return (
       <>
         <AdminHeader title="Edit Content" />
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-8 overflow-y-auto">
           <div className="max-w-2xl space-y-6">
-            <Skeleton className="h-8 w-32 mb-4" />
-            <Card className="bg-cinema-surface border-cinema-border">
-              <CardHeader><Skeleton className="h-5 w-40" /></CardHeader>
+            <Skeleton className="h-8 w-32 mb-4 rounded-lg" />
+            <Card className="bg-cinema-surface border-cinema-border rounded-2xl">
+              <CardHeader><Skeleton className="h-5 w-40 rounded-lg" /></CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
                 </div>
-                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full rounded-lg" />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
                 </div>
               </CardContent>
             </Card>
@@ -163,9 +163,9 @@ export default function EditContentPage() {
     <>
       <AdminHeader title="Edit Content" />
 
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-2xl">
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground mb-4">
+          <Button asChild variant="ghost" size="sm" className="text-muted-foreground mb-4 rounded-xl">
             <Link href="/admin/content">
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Content
@@ -174,51 +174,51 @@ export default function EditContentPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info */}
-            <Card className="bg-cinema-surface border-cinema-border">
+            <Card className="bg-cinema-surface border-cinema-border rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-base text-foreground">
+                <CardTitle className="text-[15px] font-semibold text-foreground">
                   Basic Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Title *</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Title *</Label>
                     <Input
                       required
                       value={form.title}
                       onChange={(e) => updateField("title", e.target.value)}
                       placeholder="e.g. Jujutsu Kaisen"
-                      className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                      className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Original Title</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Original Title</Label>
                     <Input
                       value={form.original_title}
                       onChange={(e) => updateField("original_title", e.target.value)}
                       placeholder="e.g. 呪術廻戦"
-                      className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                      className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Synopsis</Label>
+                  <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Synopsis</Label>
                   <Textarea
                     value={form.synopsis}
                     onChange={(e) => updateField("synopsis", e.target.value)}
                     placeholder="Brief description of the content..."
                     rows={4}
-                    className="text-sm bg-cinema-elevated border-cinema-border resize-none"
+                    className="rounded-xl text-sm bg-cinema-elevated border-cinema-border resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Type *</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Type *</Label>
                     <Select value={form.type} onValueChange={(v) => updateField("type", v)}>
-                      <SelectTrigger className="h-9 bg-cinema-elevated border-cinema-border text-sm">
+                      <SelectTrigger className="h-10 rounded-xl bg-cinema-elevated border-cinema-border text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -231,32 +231,32 @@ export default function EditContentPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Release Year</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Release Year</Label>
                     <Input
                       type="number"
                       value={form.release_year}
                       onChange={(e) => updateField("release_year", e.target.value)}
                       placeholder="2024"
-                      className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                      className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Runtime (min)</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Runtime (min)</Label>
                     <Input
                       type="number"
                       value={form.runtime_minutes}
                       onChange={(e) => updateField("runtime_minutes", e.target.value)}
                       placeholder="24"
-                      className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                      className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Language</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Language</Label>
                     <Select value={form.language} onValueChange={(v) => updateField("language", v)}>
-                      <SelectTrigger className="h-9 bg-cinema-elevated border-cinema-border text-sm">
+                      <SelectTrigger className="h-10 rounded-xl bg-cinema-elevated border-cinema-border text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -269,9 +269,9 @@ export default function EditContentPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Country</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Country</Label>
                     <Select value={form.country_of_origin} onValueChange={(v) => updateField("country_of_origin", v)}>
-                      <SelectTrigger className="h-9 bg-cinema-elevated border-cinema-border text-sm">
+                      <SelectTrigger className="h-10 rounded-xl bg-cinema-elevated border-cinema-border text-sm">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -288,47 +288,47 @@ export default function EditContentPage() {
             </Card>
 
             {/* Media URLs */}
-            <Card className="bg-cinema-surface border-cinema-border">
+            <Card className="bg-cinema-surface border-cinema-border rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-base text-foreground">
+                <CardTitle className="text-[15px] font-semibold text-foreground">
                   Media URLs
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Poster URL</Label>
+                  <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Poster URL</Label>
                   <Input
                     value={form.poster_url}
                     onChange={(e) => updateField("poster_url", e.target.value)}
                     placeholder="https://example.com/poster.jpg"
-                    className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                    className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Backdrop URL</Label>
+                  <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Backdrop URL</Label>
                   <Input
                     value={form.backdrop_url}
                     onChange={(e) => updateField("backdrop_url", e.target.value)}
                     placeholder="https://example.com/backdrop.jpg"
-                    className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                    className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Trailer URL</Label>
+                  <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Trailer URL</Label>
                   <Input
                     value={form.trailer_url}
                     onChange={(e) => updateField("trailer_url", e.target.value)}
                     placeholder="https://youtube.com/watch?v=..."
-                    className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                    className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                   />
                 </div>
               </CardContent>
             </Card>
 
             {/* Access Control */}
-            <Card className="bg-cinema-surface border-cinema-border">
+            <Card className="bg-cinema-surface border-cinema-border rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-base text-foreground">
+                <CardTitle className="text-[15px] font-semibold text-foreground">
                   Access Control
                 </CardTitle>
               </CardHeader>
@@ -348,18 +348,18 @@ export default function EditContentPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Free Trial Episodes</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Free Trial Episodes</Label>
                     <Input
                       type="number"
                       value={form.free_trial_episodes}
                       onChange={(e) => updateField("free_trial_episodes", e.target.value)}
-                      className="h-9 text-sm bg-cinema-elevated border-cinema-border"
+                      className="h-10 rounded-xl text-sm bg-cinema-elevated border-cinema-border"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Status</Label>
+                    <Label className="text-[11px] text-muted-foreground/70 uppercase tracking-[0.05em]">Status</Label>
                     <Select value={form.status} onValueChange={(v) => updateField("status", v)}>
-                      <SelectTrigger className="h-9 bg-cinema-elevated border-cinema-border text-sm">
+                      <SelectTrigger className="h-10 rounded-xl bg-cinema-elevated border-cinema-border text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-cinema-surface border-cinema-border">
@@ -377,18 +377,18 @@ export default function EditContentPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting || !form.title.trim()}
-                className="bg-cinema-red hover:bg-cinema-red-hover text-white"
+                className="bg-cinema-red hover:bg-cinema-red-hover text-white rounded-xl shadow-lg shadow-cinema-red/20"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Save Changes
               </Button>
-              <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs">
+              <Button asChild size="sm" variant="outline" className="border-cinema-border text-xs rounded-xl">
                 <Link href={`/admin/content/${params.id}/episodes`}>
                   <ListVideo className="w-3.5 h-3.5 mr-1.5" />
                   Manage Episodes
                 </Link>
               </Button>
-              <Button type="button" variant="outline" asChild className="border-cinema-border">
+              <Button type="button" variant="outline" asChild className="border-cinema-border rounded-xl">
                 <Link href="/admin/content">Cancel</Link>
               </Button>
             </div>
