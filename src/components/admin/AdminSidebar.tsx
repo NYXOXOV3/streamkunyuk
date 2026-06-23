@@ -67,7 +67,7 @@ function SidebarNavLink({
       )}
     >
       <Icon className="w-5 h-5 shrink-0" />
-      {collapsed !== false && <span className="truncate">{label}</span>}
+      {collapsed !== true && <span className="truncate">{label}</span>}
       {collapsed === true && (
         <span className="pointer-events-none absolute left-full ml-4 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
           {label}
