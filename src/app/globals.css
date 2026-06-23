@@ -64,57 +64,10 @@
   --color-cinema-overlay: var(--cinema-overlay);
 }
 
-/* ==========================================================================
-   :root — Light mode (kept as fallback but NOT used in production)
-   ========================================================================== */
+/* Light mode is not used — dark mode only */
 
 :root {
   --radius: 0.625rem;
-
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-
-  /* Cinema tokens (light — unused) */
-  --cinema-bg: oklch(0.98 0 0);
-  --cinema-surface: oklch(1 0 0);
-  --cinema-elevated: oklch(1 0 0);
-  --cinema-red: oklch(0.55 0.22 25);
-  --cinema-red-hover: oklch(0.48 0.24 25);
-  --cinema-gold: oklch(0.76 0.15 85);
-  --cinema-muted: oklch(0.6 0 0);
-  --cinema-border: oklch(0.88 0 0);
-  --cinema-overlay: oklch(0 0 0 / 60%);
 }
 
 /* ==========================================================================
@@ -122,31 +75,31 @@
    ========================================================================== */
 
 .dark {
-  --background: oklch(0.08 0.005 270);          /* #0b0b12 — deep blue-black */
+  --background: oklch(0.08 0.005 260);          /* deep blue-black — neutral dark */
   --foreground: oklch(0.95 0 0);                /* #f0f0f0 — near-white text */
 
-  --card: oklch(0.12 0.006 270);                /* #141420 — surface panels */
+  --card: oklch(0.12 0.006 260);                /* surface panels */
   --card-foreground: oklch(0.95 0 0);
 
-  --popover: oklch(0.13 0.007 270);             /* #161625 — dropdowns/popovers */
+  --popover: oklch(0.13 0.007 260);             /* dropdowns/popovers */
   --popover-foreground: oklch(0.95 0 0);
 
   --primary: oklch(0.55 0.22 25);               /* #e50914 — Netflix red */
   --primary-foreground: oklch(1 0 0);           /* #ffffff */
 
-  --secondary: oklch(0.18 0.008 270);           /* #1c1c2e — secondary surface */
+  --secondary: oklch(0.18 0.008 260);           /* secondary surface */
   --secondary-foreground: oklch(0.90 0 0);
 
-  --muted: oklch(0.18 0.008 270);               /* #1c1c2e */
-  --muted-foreground: oklch(0.63 0.01 270);     /* #8a8a9a — muted text */
+  --muted: oklch(0.18 0.008 260);               /* muted surface */
+  --muted-foreground: oklch(0.63 0.01 260);     /* muted text */
 
-  --accent: oklch(0.22 0.01 270);               /* #232336 — hover highlight */
+  --accent: oklch(0.22 0.01 260);               /* hover highlight */
   --accent-foreground: oklch(0.95 0 0);
 
   --destructive: oklch(0.65 0.2 25);            /* warm red for errors */
 
-  --border: oklch(0.22 0.01 270);               /* #232336 — subtle borders */
-  --input: oklch(0.20 0.01 270);                /* #1e1e30 — input backgrounds */
+  --border: oklch(0.22 0.01 260);               /* subtle borders */
+  --input: oklch(0.20 0.01 260);                /* input backgrounds */
   --ring: oklch(0.55 0.22 25);                  /* primary red for focus rings */
 
   --chart-1: oklch(0.55 0.22 25);               /* crimson */
@@ -155,24 +108,24 @@
   --chart-4: oklch(0.60 0.20 280);              /* purple */
   --chart-5: oklch(0.65 0.16 200);              /* sky blue */
 
-  --sidebar: oklch(0.10 0.006 270);             /* #0e0e1a — sidebar bg */
+  --sidebar: oklch(0.10 0.006 260);             /* sidebar bg */
   --sidebar-foreground: oklch(0.90 0 0);
   --sidebar-primary: oklch(0.55 0.22 25);       /* red accent */
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.18 0.01 270);
+  --sidebar-accent: oklch(0.18 0.01 260);
   --sidebar-accent-foreground: oklch(0.90 0 0);
-  --sidebar-border: oklch(0.20 0.01 270);
+  --sidebar-border: oklch(0.20 0.01 260);
   --sidebar-ring: oklch(0.55 0.22 25);
 
   /* --- Cinema-specific tokens --- */
-  --cinema-bg: oklch(0.06 0.005 270);           /* #08080e — deepest bg */
-  --cinema-surface: oklch(0.12 0.006 270);      /* #141420 — card surface */
-  --cinema-elevated: oklch(0.16 0.008 270);     /* #1a1a28 — elevated panels */
+  --cinema-bg: oklch(0.07 0.003 260);           /* deepest bg — warmer neutral dark */
+  --cinema-surface: oklch(0.13 0.004 260);      /* card surface */
+  --cinema-elevated: oklch(0.17 0.005 260);     /* elevated panels */
   --cinema-red: oklch(0.55 0.22 25);            /* #e50914 — primary CTA */
   --cinema-red-hover: oklch(0.50 0.24 25);      /* darker red hover */
   --cinema-gold: oklch(0.76 0.15 85);           /* #d4a843 — premium accent */
-  --cinema-muted: oklch(0.55 0.01 270);         /* #6b6b80 — secondary text */
-  --cinema-border: oklch(0.18 0.01 270);        /* #1e1e2e — borders */
+  --cinema-muted: oklch(0.55 0.01 260);         /* secondary text */
+  --cinema-border: oklch(0.20 0.005 260);        /* borders */
   --cinema-overlay: oklch(0 0 0 / 75%);         /* modal/overlay backdrop */
 }
 
@@ -204,10 +157,28 @@
     display: none;
   }
 
-  /* Custom thin scrollbar for admin panels */
+  /* shadcn component defaults for cinema theme */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  textarea,
+  select {
+    background-color: var(--cinema-elevated);
+    border-color: var(--cinema-border);
+    color: var(--foreground);
+  }
+
+  /* Focus ring consistency */
+  :focus-visible {
+    outline: 2px solid var(--cinema-red);
+    outline-offset: 2px;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: oklch(0.25 0.01 270) transparent;
+    scrollbar-color: oklch(0.25 0.005 260) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
@@ -217,16 +188,16 @@
     background: transparent;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: oklch(0.25 0.01 270);
+    background-color: oklch(0.25 0.005 260);
     border-radius: 9999px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: oklch(0.35 0.01 270);
+    background-color: oklch(0.35 0.005 260);
   }
 }
 
 /* ==========================================================================
-   VIDEO.JS OVERRIDES — Cinema skin
+   VIDEO.JS OVERRIDES — Cinema skin (legacy/fallback player)
    ========================================================================== */
 
 .video-js {
@@ -271,17 +242,39 @@
    UTILITY CLASSES
    ========================================================================== */
 
+/* Subtle selection color matching cinema red accent */
+::selection {
+  background-color: oklch(0.55 0.22 25 / 30%);
+  color: white;
+}
+
+/* Smooth page transition */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: fade-in-up 0.4s ease-out;
+}
+
 /* Gradient overlays for hero banners and cards */
 .cinema-gradient-bottom {
-  background: linear-gradient(to top, oklch(0.06 0.005 270) 0%, transparent 100%);
+  background: linear-gradient(to top, oklch(0.07 0.003 260) 0%, transparent 100%);
 }
 
 .cinema-gradient-right {
-  background: linear-gradient(to right, oklch(0.06 0.005 270) 0%, transparent 60%);
+  background: linear-gradient(to right, oklch(0.07 0.003 260) 0%, transparent 60%);
 }
 
 .cinema-gradient-card {
-  background: linear-gradient(to top, oklch(0 0 0 / 85%) 0%, transparent 60%);
+  background: linear-gradient(to top, oklch(0 0 0 / 90%) 0%, oklch(0 0 0 / 30%) 40%, transparent 70%);
 }
 
 /* Text gradient for premium/gold accents */

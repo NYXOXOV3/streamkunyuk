@@ -12,12 +12,11 @@ import {
   Users,
   ListVideo,
   ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Play,
   Image,
   Menu,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,14 +60,19 @@ function SidebarNavLink({
       href={href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+        "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
         isActive
-          ? "bg-cinema-red/10 text-cinema-red"
+          ? "bg-cinema-red/10 text-cinema-red before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-cinema-red before:rounded-r"
           : "text-muted-foreground hover:text-foreground hover:bg-accent",
       )}
     >
       <Icon className="w-5 h-5 shrink-0" />
       {collapsed !== false && <span className="truncate">{label}</span>}
+      {collapsed === true && (
+        <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 rounded-md bg-foreground text-background text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+          {label}
+        </span>
+      )}
     </Link>
   );
 }
@@ -90,8 +94,8 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-2 h-14 px-4 border-b border-cinema-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-cinema-red flex items-center justify-center shrink-0 glow-red">
-          <Play className="w-4 h-4 text-white ml-0.5" />
+        <div className="w-7 h-7 rounded-md bg-cinema-red flex items-center justify-center shrink-0 shadow-md shadow-cinema-red/20">
+          <Play className="w-3.5 h-3.5 text-white ml-0.5" />
         </div>
         {isSidebarOpen && (
           <div className="flex items-center gap-1 overflow-hidden">
@@ -130,12 +134,13 @@ export function AdminSidebar() {
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="w-full justify-center text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="w-full justify-center text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
+          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isSidebarOpen ? (
-            <ChevronLeft className="w-4 h-4" />
+            <PanelLeftClose className="w-4 h-4" />
           ) : (
-            <ChevronRight className="w-4 h-4" />
+            <PanelLeftOpen className="w-4 h-4" />
           )}
         </Button>
       </div>
@@ -163,11 +168,11 @@ export function AdminMobileNav() {
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 bg-cinema-surface border-cinema-border p-0">
+        <SheetContent side="left" className="w-64 bg-cinema-surface border-cinema-border p-0 rounded-xl">
           <SheetHeader className="px-4 pt-5 pb-3 border-b border-cinema-border">
             <SheetTitle className="flex items-center gap-2 text-left">
-              <div className="w-8 h-8 rounded-lg bg-cinema-red flex items-center justify-center">
-                <Play className="w-4 h-4 text-white ml-0.5" />
+              <div className="w-7 h-7 rounded-md bg-cinema-red flex items-center justify-center shadow-md shadow-cinema-red/20">
+                <Play className="w-3.5 h-3.5 text-white ml-0.5" />
               </div>
               <span className="text-sm font-bold text-white">Admin Panel</span>
               <ShieldCheck className="w-3.5 h-3.5 text-cinema-gold" />
@@ -198,4 +203,3 @@ export function AdminMobileNav() {
     </>
   );
 }
-

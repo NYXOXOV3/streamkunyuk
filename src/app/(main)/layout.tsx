@@ -19,8 +19,8 @@ export default function MainLayout({
     <div className="min-h-screen flex flex-col bg-cinema-bg">
       <Navbar />
 
-      {/* Main content — bottom padding for mobile nav (h-16) */}
-      <main className="flex-1">{children}</main>
+      {/* Main content — bottom padding for mobile nav (h-14) */}
+      <main className="flex-1 pb-14 lg:pb-0">{children}</main>
 
       <div className="hidden lg:block mt-auto">
         <Footer />

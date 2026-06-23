@@ -51,18 +51,18 @@ export function ContentCarousel({
   }
 
   return (
-    <section className="relative group/section py-4">
+    <section className="relative group/section py-5 first:pt-2">
       {/* Title row */}
-      <div className="flex items-center justify-between mb-3 px-6 md:px-10 lg:px-0">
-        <h2 className="text-base sm:text-lg font-semibold text-foreground">
+      <div className="flex items-center justify-between mb-3.5 px-6 md:px-10 lg:px-0">
+        <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight">
           {title}
         </h2>
         {seeAllHref && (
           <Link
             href={seeAllHref}
-            className="text-xs sm:text-sm text-cinema-muted hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
           >
-            See All
+            See All →
           </Link>
         )}
       </div>
@@ -71,7 +71,7 @@ export function ContentCarousel({
       <div className="relative">
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth px-6 md:px-10 lg:px-0"
+          className="flex gap-3.5 overflow-x-auto scrollbar-hide scroll-smooth px-6 md:px-10 lg:px-0"
         >
           {contents.map((content, i) => (
             <div
@@ -87,7 +87,7 @@ export function ContentCarousel({
         <button
           onClick={() => scroll("left")}
           aria-label="Scroll left"
-          className="absolute left-0 top-0 bottom-0 w-10 sm:w-14 bg-gradient-to-r from-cinema-bg/90 to-transparent flex items-center justify-start pl-2 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300 z-10"
+          className="absolute left-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-r from-cinema-bg via-cinema-bg/80 to-transparent flex items-center justify-start pl-2 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300 z-10"
         >
           <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors">
             <ChevronLeft className="w-5 h-5 text-white" />
@@ -98,7 +98,7 @@ export function ContentCarousel({
         <button
           onClick={() => scroll("right")}
           aria-label="Scroll right"
-          className="absolute right-0 top-0 bottom-0 w-10 sm:w-14 bg-gradient-to-l from-cinema-bg/90 to-transparent flex items-center justify-end pr-2 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300 z-10"
+          className="absolute right-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-l from-cinema-bg via-cinema-bg/80 to-transparent flex items-center justify-end pr-2 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300 z-10"
         >
           <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors">
             <ChevronRight className="w-5 h-5 text-white" />
