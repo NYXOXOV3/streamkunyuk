@@ -105,12 +105,16 @@ export default function PlayerClient({ data }: PlayerClientProps) {
   const isLocked =
     episode.is_locked && !isSubscriber && !episode.is_free_trial;
 
+  // Detect vidapi embed URL — use iframe instead of native video
+  const videoUrl = episode.video_url || episode.video_url_backup;
+  const isVidapiEmbed = !!videoUrl && videoUrl.includes("vidapi.qzz.io");
+
   // ---------------------------------------------------------------------------
   // Video init: HLS.js or native
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    if (isLocked) return;
+    if (isLocked || isVidapiEmbed) return;
 
     const video = videoRef.current;
     if (!video) return;
@@ -164,7 +168,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
         hlsRef.current = null;
       }
     };
-  }, [episode.video_url, episode.video_url_backup, isLocked]);
+  }, [episode.video_url, episode.video_url_backup, isLocked, isVidapiEmbed]);
 
   // ---------------------------------------------------------------------------
   // Store sync on mount
@@ -455,22 +459,32 @@ export default function PlayerClient({ data }: PlayerClientProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Video Element */}
+      {/* Video Element or VidAPI iframe */}
       <div className="flex-1 relative">
-        <video
-          ref={videoRef}
-          className="w-full h-full object-contain bg-black cursor-pointer"
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onPlay={handlePlay}
-          onPause={handlePause}
-          onWaiting={handleWaiting}
-          onCanPlay={handleCanPlay}
-          onEnded={handleEnded}
-          onClick={togglePlay}
-          playsInline
-          preload="metadata"
-        />
+        {isVidapiEmbed && !isLocked ? (
+          <iframe
+            src={videoUrl}
+            className="w-full h-full border-0"
+            allowFullScreen
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-contain bg-black cursor-pointer"
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onWaiting={handleWaiting}
+            onCanPlay={handleCanPlay}
+            onEnded={handleEnded}
+            onClick={togglePlay}
+            playsInline
+            preload="metadata"
+          />
+        )}
 
         {/* Buffering spinner */}
         {isBuffering && isPlaying && (
@@ -515,13 +529,15 @@ export default function PlayerClient({ data }: PlayerClientProps) {
         )}
 
         {/* ================================================================
-            CONTROLS OVERLAY
+            CONTROLS OVERLAY (hidden for vidapi — it has its own)
             ================================================================ */}
 
         {/* Top bar — title + back + episode list toggle */}
         <div
           className={`absolute top-0 left-0 right-0 z-20 transition-opacity duration-300 ${
-            showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
+            isVidapiEmbed
+              ? "opacity-100"
+              : (showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none")
           }`}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-transparent" />
@@ -579,7 +595,8 @@ export default function PlayerClient({ data }: PlayerClientProps) {
           </button>
         )}
 
-        {/* Bottom controls bar */}
+        {/* Bottom controls bar (hidden for vidapi — it has its own) */}
+        {!isVidapiEmbed && (
         <div
           className={`absolute bottom-0 left-0 right-0 z-20 transition-opacity duration-300 ${
             showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -701,7 +718,10 @@ export default function PlayerClient({ data }: PlayerClientProps) {
             </div>
           </div>
         </div>
+        )}
+        {/* End bottom controls */}
       </div>
+      {/* End flex-1 relative */}
 
       {/* ================================================================
           EPISODE LIST SIDEBAR

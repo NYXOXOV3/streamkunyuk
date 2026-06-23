@@ -9,7 +9,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { manualContentSchema, episodeSchema, updateEpisodeSchema } from "@/lib/validations/adminSchemas";
-import { searchTmdb, getTmdbDetail, parseTmdbToContentType } from "@/lib/api/tmdb";
+import { searchTmdb, getTmdbDetail, parseTmdbToContentType, getTmdbTvSeasons, buildVidapiUrl, tmdbImageUrl } from "@/lib/api/tmdb";
 import type { Content, ContentType, ContentStatus } from "@/lib/supabase/types";
 
 // ---------------------------------------------------------------------------
@@ -117,7 +117,14 @@ export async function createContent(formData: Record<string, unknown>): Promise<
 export async function importFromTmdb(params: {
   tmdbId: number;
   type: "movie" | "tv";
-}): Promise<{ success: boolean; data?: Content; error: string | null }> {
+  importEpisodes?: boolean;
+}): Promise<{
+  success: boolean;
+  data?: Content;
+  episodesImported?: number;
+  seasonsImported?: number;
+  error: string | null;
+}> {
   try {
     const supabase = await createAdminClient();
 
@@ -150,6 +157,9 @@ export async function importFromTmdb(params: {
       .delete()
       .eq("tmdb_id", parsed.tmdb_id);
 
+    // Build vidapi URL for the content itself
+    const vidapiContentUrl = buildVidapiUrl(parsed.tmdb_id, params.type);
+
     const { data, error } = await supabase
       .from("contents")
       .insert({
@@ -165,6 +175,7 @@ export async function importFromTmdb(params: {
         rating_count: parsed.rating_count,
         status: "draft",
         provider_source_id: provider?.id || null,
+        trailer_url: vidapiContentUrl, // store vidapi as trailer for reference
         slug: parsed.title
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
@@ -174,10 +185,143 @@ export async function importFromTmdb(params: {
       .single();
 
     if (error) throw error;
-    return { success: true, data, error: null };
+
+    // For TV shows: import seasons & episodes
+    let episodesImported = 0;
+    let seasonsImported = 0;
+
+    if (params.type === "tv" && params.importEpisodes !== false) {
+      try {
+        const seasons = await getTmdbTvSeasons(parsed.tmdb_id, apiKey);
+
+        // Delete all existing episodes for this content (once, before loop)
+        if (seasons.length > 0) {
+          await supabase.from("episodes").delete().eq("content_id", data.id);
+        }
+
+        for (const { season, episodes } of seasons) {
+          // Create season record
+          const { data: seasonRow, error: seasonErr } = await supabase
+            .from("seasons")
+            .upsert({
+              content_id: data.id,
+              season_number: season.season_number,
+              title: season.name,
+              synopsis: season.overview || null,
+              poster_url: tmdbImageUrl(season.poster_path),
+              air_date: season.air_date || null,
+            }, { onConflict: "content_id,season_number" })
+            .select("id")
+            .single();
+
+          if (seasonErr) {
+            console.error(`Season ${season.season_number} insert failed:`, seasonErr);
+            continue;
+          }
+          seasonsImported++;
+
+          // Create episode records
+          if (episodes && episodes.length > 0) {
+            const episodeRows = episodes
+              .filter((ep) => ep.episode_number > 0)
+              .map((ep) => ({
+                content_id: data.id,
+                season_id: seasonRow?.id || null,
+                episode_number: ep.episode_number,
+                title: ep.name || null,
+                synopsis: ep.overview || null,
+                thumbnail_url: tmdbImageUrl(ep.still_path),
+                runtime_seconds: ep.runtime ? ep.runtime * 60 : null,
+                video_url: buildVidapiUrl(parsed.tmdb_id, "tv", season.season_number, ep.episode_number),
+                is_locked: false,
+                is_free_trial: false,
+                air_date: ep.air_date || null,
+              }));
+
+            if (episodeRows.length > 0) {
+              const { error: epInsertErr } = await supabase
+                .from("episodes")
+                .insert(episodeRows);
+
+              if (epInsertErr) {
+                console.error(`Episodes insert failed for S${season.season_number}:`, epInsertErr);
+              } else {
+                episodesImported += episodeRows.length;
+              }
+            }
+          }
+        }
+      } catch (epError) {
+        console.error("Season/episode import failed (non-fatal):", epError);
+        // Don't fail the whole import — content is already saved
+      }
+    }
+
+    // For movies: set the vidapi URL as a "video" on the content
+    // (movies don't have episodes, we'll handle it via player detection)
+    if (params.type === "movie") {
+      // Store vidapi URL as a single episode for movies too, so player works uniformly
+      const { error: movieEpErr } = await supabase.from("episodes").insert({
+        content_id: data.id,
+        episode_number: 1,
+        title: parsed.title,
+        synopsis: parsed.synopsis,
+        video_url: buildVidapiUrl(parsed.tmdb_id, "movie"),
+        is_locked: false,
+        is_free_trial: true,
+      });
+      if (movieEpErr) console.error("Movie episode insert failed:", movieEpErr);
+      else episodesImported = 1;
+    }
+
+    return {
+      success: true,
+      data,
+      episodesImported,
+      seasonsImported,
+      error: null,
+    };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Bulk TMDB Import — Import multiple items at once
+// ---------------------------------------------------------------------------
+
+export interface BulkImportResult {
+  tmdbId: number;
+  title: string;
+  success: boolean;
+  error?: string;
+  episodesImported?: number;
+  seasonsImported?: number;
+}
+
+export async function bulkImportFromTmdb(params: {
+  items: { tmdbId: number; type: "movie" | "tv" }[];
+}): Promise<{ results: BulkImportResult[]; error: string | null }> {
+  const results: BulkImportResult[] = [];
+
+  for (const item of params.items) {
+    const result = await importFromTmdb({
+      tmdbId: item.tmdbId,
+      type: item.type,
+      importEpisodes: true,
+    });
+
+    results.push({
+      tmdbId: item.tmdbId,
+      title: result.data?.title ?? `ID: ${item.tmdbId}`,
+      success: result.success,
+      error: result.error ?? undefined,
+      episodesImported: result.episodesImported,
+      seasonsImported: result.seasonsImported,
+    });
+  }
+
+  return { results, error: null };
 }
 
 // ---------------------------------------------------------------------------
