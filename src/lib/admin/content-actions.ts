@@ -173,9 +173,12 @@ export async function importFromTmdb(params: {
         backdrop_url: parsed.backdrop_url,
         rating: parsed.rating,
         rating_count: parsed.rating_count,
+        language: "en",
         status: "draft",
+        is_premium_only: false,
+        free_trial_episodes: 0,
         provider_source_id: provider?.id || null,
-        trailer_url: vidapiContentUrl, // store vidapi as trailer for reference
+        trailer_url: vidapiContentUrl,
         slug: parsed.title
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
@@ -192,25 +195,26 @@ export async function importFromTmdb(params: {
 
     if (params.type === "tv" && params.importEpisodes !== false) {
       try {
-        const seasons = await getTmdbTvSeasons(parsed.tmdb_id, apiKey);
+        const seasons = await getTmdbTvSeasons(parsed.tmdb_id, apiKey, detail.seasons);
 
-        // Delete all existing episodes for this content (once, before loop)
+        // Delete all existing seasons & episodes for this content (once, before loop)
         if (seasons.length > 0) {
           await supabase.from("episodes").delete().eq("content_id", data.id);
+          await supabase.from("seasons").delete().eq("content_id", data.id);
         }
 
         for (const { season, episodes } of seasons) {
-          // Create season record
+          // Create season record (delete+insert pattern — no unique constraint needed)
           const { data: seasonRow, error: seasonErr } = await supabase
             .from("seasons")
-            .upsert({
+            .insert({
               content_id: data.id,
               season_number: season.season_number,
               title: season.name,
               synopsis: season.overview || null,
               poster_url: tmdbImageUrl(season.poster_path),
               air_date: season.air_date || null,
-            }, { onConflict: "content_id,season_number" })
+            })
             .select("id")
             .single();
 

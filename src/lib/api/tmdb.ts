@@ -9,7 +9,9 @@
  * the TMDB key at runtime via the Admin Panel.
  */
 
-import { type ApiProvider } from "@/lib/supabase/types";
+// ---------------------------------------------------------------------------
+// TMDB Response Types
+// ---------------------------------------------------------------------------
 
 interface TmdbSearchResult {
   id: number;
@@ -47,11 +49,8 @@ interface TmdbDetailResult extends TmdbSearchResult {
   number_of_episodes?: number;
   status: string;
   tagline?: string;
+  seasons?: TmdbSeasonDetail[];
 }
-
-// ---------------------------------------------------------------------------
-// TV Show: Seasons & Episodes
-// ---------------------------------------------------------------------------
 
 export interface TmdbSeasonDetail {
   id: number;
@@ -80,63 +79,31 @@ export interface TmdbSeasonWithEpisodes {
   episodes: TmdbEpisodeDetail[];
 }
 
-/**
- * Fetch all seasons for a TV show, then fetch episodes for each season.
- */
-export async function getTmdbTvSeasons(
-  tmdbId: number,
-  apiKey: string,
-  baseUrl: string = "https://api.themoviedb.org/3",
-): Promise<TmdbSeasonWithEpisodes[]> {
-  const isV3Key = /^[a-f0-9]{32}$/i.test(apiKey.trim());
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(isV3Key ? {} : { Authorization: `Bearer ${apiKey.trim()}` }),
-  };
+// ---------------------------------------------------------------------------
+// Auth helper (shared by all TMDB calls)
+// ---------------------------------------------------------------------------
 
-  // 1. Fetch TV detail to get season list
-  const detailUrl = new URL(`${baseUrl}/tv/${tmdbId}`);
-  detailUrl.searchParams.set("language", "en-US");
-  if (isV3Key) detailUrl.searchParams.set("api_key", apiKey.trim());
-
-  const detailRes = await fetch(detailUrl.toString(), {
-    headers,
-    next: { revalidate: 3600 },
-  });
-  if (!detailRes.ok) throw new Error(`TMDB TV detail failed (${detailRes.status})`);
-  const detail: TmdbDetailResult & { seasons: TmdbSeasonDetail[] } = await detailRes.json();
-
-  // 2. For each season, fetch episodes (skip season 0 = specials unless desired)
-  const seasonsWithEpisodes: TmdbSeasonWithEpisodes[] = [];
-
-  // Fetch seasons in parallel (max 5 concurrent to avoid rate limits)
-  const seasonNumbers = (detail.seasons ?? [])
-    .filter((s) => s.season_number > 0) // skip specials (season 0)
-    .map((s) => s.season_number);
-
-  // Process in batches of 5
-  for (let i = 0; i < seasonNumbers.length; i += 5) {
-    const batch = seasonNumbers.slice(i, i + 5);
-    const results = await Promise.allSettled(
-      batch.map(async (sn) => {
-        const epUrl = new URL(`${baseUrl}/tv/${tmdbId}/season/${sn}`);
-        epUrl.searchParams.set("language", "en-US");
-        if (isV3Key) epUrl.searchParams.set("api_key", apiKey.trim());
-
-        const epRes = await fetch(epUrl.toString(), { headers });
-        if (!epRes.ok) throw new Error(`Season ${sn} fetch failed`);
-        const epData = await epRes.json();
-        return { season: epData as TmdbSeasonDetail, episodes: (epData.episodes ?? []) as TmdbEpisodeDetail[] };
-      }),
-    );
-
-    for (const r of results) {
-      if (r.status === "fulfilled") seasonsWithEpisodes.push(r.value);
-    }
-  }
-
-  return seasonsWithEpisodes;
+function isV3Key(apiKey: string): boolean {
+  return /^[a-f0-9]{32}$/i.test(apiKey.trim());
 }
+
+function tmdbHeaders(apiKey: string): Record<string, string> {
+  const v3 = isV3Key(apiKey);
+  return {
+    "Content-Type": "application/json",
+    ...(v3 ? {} : { Authorization: `Bearer ${apiKey.trim()}` }),
+  };
+}
+
+function applyApiKey(url: URL, apiKey: string): void {
+  if (isV3Key(apiKey)) {
+    url.searchParams.set("api_key", apiKey.trim());
+  }
+}
+
+// ---------------------------------------------------------------------------
+// API Functions
+// ---------------------------------------------------------------------------
 
 /**
  * Search TMDB for movies or TV shows by title.
@@ -153,21 +120,10 @@ export async function searchTmdb(
   url.searchParams.set("page", String(page));
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("language", "en-US");
-
-  // TMDB supports two auth methods:
-  //   v3 API Key (32-char hex) → ?api_key=xxx
-  //   v4 Bearer Token (JWT)     → Authorization: Bearer xxx
-  // Auto-detect by key format
-  const isV3Key = /^[a-f0-9]{32}$/i.test(apiKey.trim());
-  if (isV3Key) {
-    url.searchParams.set("api_key", apiKey.trim());
-  }
+  applyApiKey(url, apiKey);
 
   const res = await fetch(url.toString(), {
-    headers: {
-      ...(isV3Key ? {} : { Authorization: `Bearer ${apiKey.trim()}` }),
-      "Content-Type": "application/json",
-    },
+    headers: tmdbHeaders(apiKey),
     next: { revalidate: 300 },
   });
 
@@ -182,16 +138,6 @@ export async function searchTmdb(
 /**
  * Fetch full details for a specific TMDB movie or TV show.
  */
-interface TmdbDetailResult extends TmdbSearchResult {
-  genres: TmdbGenre[];
-  runtime?: number;
-  number_of_seasons?: number;
-  number_of_episodes?: number;
-  status: string;
-  tagline?: string;
-  seasons?: TmdbSeasonDetail[];
-}
-
 export async function getTmdbDetail(
   tmdbId: number,
   type: "movie" | "tv" = "movie",
@@ -200,17 +146,10 @@ export async function getTmdbDetail(
 ): Promise<TmdbDetailResult> {
   const url = new URL(`${baseUrl}/${type}/${tmdbId}`);
   url.searchParams.set("language", "en-US");
-
-  const isV3Key = /^[a-f0-9]{32}$/i.test(apiKey.trim());
-  if (isV3Key) {
-    url.searchParams.set("api_key", apiKey.trim());
-  }
+  applyApiKey(url, apiKey);
 
   const res = await fetch(url.toString(), {
-    headers: {
-      ...(isV3Key ? {} : { Authorization: `Bearer ${apiKey.trim()}` }),
-      "Content-Type": "application/json",
-    },
+    headers: tmdbHeaders(apiKey),
     next: { revalidate: 3600 },
   });
 
@@ -223,6 +162,86 @@ export async function getTmdbDetail(
 }
 
 /**
+ * Fetch all seasons for a TV show, then fetch episodes for each season.
+ * Accepts optional pre-fetched season numbers to avoid double-fetching.
+ */
+export async function getTmdbTvSeasons(
+  tmdbId: number,
+  apiKey: string,
+  existingSeasons?: TmdbSeasonDetail[],
+  baseUrl: string = "https://api.themoviedb.org/3",
+): Promise<TmdbSeasonWithEpisodes[]> {
+  const headers = tmdbHeaders(apiKey);
+
+  // Use pre-fetched seasons or fetch from TMDB
+  let seasonNumbers: number[];
+  if (existingSeasons && existingSeasons.length > 0) {
+    seasonNumbers = existingSeasons
+      .filter((s) => s.season_number > 0)
+      .map((s) => s.season_number);
+  } else {
+    // Need to fetch TV detail to get season list
+    const detailUrl = new URL(`${baseUrl}/tv/${tmdbId}`);
+    detailUrl.searchParams.set("language", "en-US");
+    applyApiKey(detailUrl, apiKey);
+
+    const detailRes = await fetch(detailUrl.toString(), { headers, next: { revalidate: 3600 } });
+    if (!detailRes.ok) throw new Error(`TMDB TV detail failed (${detailRes.status})`);
+    const detail: TmdbDetailResult = await detailRes.json();
+
+    seasonNumbers = (detail.seasons ?? [])
+      .filter((s) => s.season_number > 0)
+      .map((s) => s.season_number);
+  }
+
+  if (seasonNumbers.length === 0) return [];
+
+  // Fetch episodes for each season in batches of 5
+  const seasonsWithEpisodes: TmdbSeasonWithEpisodes[] = [];
+
+  for (let i = 0; i < seasonNumbers.length; i += 5) {
+    const batch = seasonNumbers.slice(i, i + 5);
+    const results = await Promise.allSettled(
+      batch.map(async (sn) => {
+        const epUrl = new URL(`${baseUrl}/tv/${tmdbId}/season/${sn}`);
+        epUrl.searchParams.set("language", "en-US");
+        applyApiKey(epUrl, apiKey);
+
+        const epRes = await fetch(epUrl.toString(), { headers });
+        if (!epRes.ok) throw new Error(`Season ${sn} fetch failed (${epRes.status})`);
+        const epData = await epRes.json();
+
+        // Extract season info from the response itself
+        const seasonInfo: TmdbSeasonDetail = {
+          id: epData.id ?? sn,
+          season_number: epData.season_number ?? sn,
+          name: epData.name ?? `Season ${sn}`,
+          episode_count: epData.episodes?.length ?? 0,
+          air_date: epData.air_date ?? null,
+          overview: epData.overview ?? null,
+          poster_path: epData.poster_path ?? null,
+        };
+
+        return {
+          season: seasonInfo,
+          episodes: (epData.episodes ?? []) as TmdbEpisodeDetail[],
+        };
+      }),
+    );
+
+    for (const r of results) {
+      if (r.status === "fulfilled") seasonsWithEpisodes.push(r.value);
+    }
+  }
+
+  return seasonsWithEpisodes;
+}
+
+// ---------------------------------------------------------------------------
+// Image URL Builder
+// ---------------------------------------------------------------------------
+
+/**
  * Build the full poster/backdrop URL from a TMDB path.
  */
 export function tmdbImageUrl(
@@ -233,6 +252,10 @@ export function tmdbImageUrl(
   if (!path) return null;
   return `${imageBaseUrl}/${size}${path}`;
 }
+
+// ---------------------------------------------------------------------------
+// Parse TMDB → Content Type
+// ---------------------------------------------------------------------------
 
 /**
  * Parse a TMDB search result into a format suitable for our content type.
@@ -277,11 +300,9 @@ export function parseTmdbToContentType(
 
 /**
  * Build vidapi.qzz.io embed URL for a movie.
- * Colors are hex values matching the StreamVault cinema dark theme.
+ * Colors match the StreamVault cinema dark theme.
  */
-export function buildVidapiMovieUrl(
-  tmdbId: number,
-): string {
+export function buildVidapiMovieUrl(tmdbId: number): string {
   return `https://vidapi.qzz.io/movie/${tmdbId}?primaryColor=8B1A1A&secondaryColor=1A1A2E&iconColor=2ECC71&icons=default&player=nf&title=true&poster=true&autoplay=true&nextbutton=true`;
 }
 
