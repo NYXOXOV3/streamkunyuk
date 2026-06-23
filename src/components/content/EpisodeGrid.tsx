@@ -155,6 +155,7 @@ function EpisodeCard({
   contentPremiumOnly,
   isSubscriber,
 }: EpisodeCardProps) {
+  const router = useRouter();
   const [showPremium, setShowPremium] = useState(false);
   const playable = canPlayEpisode(episode, contentPremiumOnly, isSubscriber);
   const isLocked = episode.is_locked && !isSubscriber && !episode.is_free_trial;
