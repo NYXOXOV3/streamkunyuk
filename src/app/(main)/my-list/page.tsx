@@ -15,20 +15,22 @@ function MyListContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) { setIsLoading(false); return; }
     const supabase = createClient();
-    supabase
-      .from("favorites")
-      .select("content:contents(*)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .then(({ data }: { data: unknown }) => {
-        const items = ((data as Record<string, unknown>[]) ?? [])
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("favorites")
+          .select("content:contents(*)")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        const items = ((data as unknown as Record<string, unknown>[]) ?? [])
           .map((r: Record<string, unknown>) => r.content as Content)
           .filter(Boolean);
         setContents(items);
-      })
-      .finally(() => setIsLoading(false));
+      } catch { /* ignore */ }
+      setIsLoading(false);
+    })();
   }, [userId]);
 
   return (

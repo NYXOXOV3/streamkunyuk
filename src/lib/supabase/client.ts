@@ -1,20 +1,21 @@
 /**
  * Supabase Browser Client
  *
- * Uses @supabase/ssr createBrowserClient which stores the auth token
- * in cookies (not localStorage). This is CRITICAL for Vercel deployment
- * where the server-side middleware needs to read the session cookie
- * to maintain auth state across page loads.
+ * Uses @supabase/supabase-js createClient directly.
+ * Stores auth tokens in localStorage (not cookies).
  *
- * Cookie-based auth ensures that:
- * 1. Login → cookie ter-set → server bisa baca → halaman render sebagai authenticated
- * 2. Middleware bisa refresh token via cookie
- * 3. Tidak ada mismatch antara client state & server state
+ * Kenapa pake ini, bukan @supabase/ssr createBrowserClient?
+ * - Di Vercel, middleware pake Edge Runtime — cookies middleware
+ *   dan localStorage client ga bisa sync.
+ * - Pake @supabase/supabase-js lebih reliable untuk client-side auth
+ *   karena localStorage persist antar page load.
+ * - Server-side session di-handle oleh getUser() di AuthInitializer
+ *   yang pake access token dari localStorage.
  */
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
+let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
 
 function getSupabaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,18 +30,16 @@ function getSupabaseAnonKey(): string {
 }
 
 /**
- * Returns the singleton Supabase browser client instance.
- * Uses cookie-based auth (localStorage fallback jika cookies tidak tersedia).
+ * Returns singleton Supabase browser client.
+ * Session persists in localStorage — reliable across page loads.
  */
 export function createClient() {
   if (!supabaseInstance) {
-    supabaseInstance = createBrowserClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    supabaseInstance = createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        // FlowType: "pkce" ensures the auth code exchange works on Vercel Edge
-        flowType: "pkce",
       },
     });
   }

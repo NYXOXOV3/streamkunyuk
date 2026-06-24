@@ -27,18 +27,20 @@ function HistoryContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) { setIsLoading(false); return; }
     const supabase = createClient();
-    supabase
-      .from("watch_history")
-      .select("*, content:contents(*), episode:episodes(*)")
-      .eq("user_id", userId)
-      .order("last_watched_at", { ascending: false })
-      .limit(50)
-      .then(({ data }: { data: unknown }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("watch_history")
+          .select("*, content:contents(*), episode:episodes(*)")
+          .eq("user_id", userId)
+          .order("last_watched_at", { ascending: false })
+          .limit(50);
         setItems((data ?? []) as unknown as HistoryItem[]);
-      })
-      .finally(() => setIsLoading(false));
+      } catch { /* ignore */ }
+      setIsLoading(false);
+    })();
   }, [userId]);
 
   return <HistoryView items={items} isLoading={isLoading} />;

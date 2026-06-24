@@ -94,8 +94,8 @@ export function LoginForm() {
 
     toast({ title: "Welcome back!" });
 
-    // Use navigate to avoid full reload — keeps Zustand + onAuthStateChange intact
-    window.location.href = window.location.origin;
+    // Hard reload to homepage — session persisted in localStorage
+    window.location.href = "/";
   }
 
   async function handleGoogleSignIn() {
