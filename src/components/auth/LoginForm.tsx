@@ -94,9 +94,8 @@ export function LoginForm() {
 
     toast({ title: "Welcome back!" });
 
-    // Use router.push instead of hard redirect to preserve Zustand store
-    // and let onAuthStateChange sync the session properly
-    window.location.href = "/";
+    // Use navigate to avoid full reload — keeps Zustand + onAuthStateChange intact
+    window.location.href = window.location.origin;
   }
 
   async function handleGoogleSignIn() {
