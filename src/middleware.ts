@@ -8,9 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * 1. Supabase placeholder bypass (dev mode)
  * 2. Redirecting authenticated users away from auth pages
  */
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
+export async function middleware(_request: NextRequest) {
   // If Supabase is not configured, pass through (development mode)
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")) {
     return NextResponse.next();
