@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { adminFetch } from "@/lib/admin/client-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,24 +30,22 @@ import {
 // ---------------------------------------------------------------------------
 
 async function fetchApiProviders() {
-  const res = await fetch("/api/admin/api-providers");
+  const res = await adminFetch("/api/admin/api-providers");
   if (!res.ok) throw new Error("Failed to fetch providers");
   return res.json();
 }
 
 async function apiSaveConfig(data: Record<string, unknown>) {
-  const res = await fetch("/api/admin/api-providers", {
+  const res = await adminFetch("/api/admin/api-providers", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
 }
 
 async function apiTestConnection(providerName: string) {
-  const res = await fetch("/api/admin/api-providers/test", {
+  const res = await adminFetch("/api/admin/api-providers/test", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ providerName }),
   });
   return res.json();

@@ -17,11 +17,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { adminFetch } from "@/lib/admin/client-helpers";
 // Fetch-based, no server actions
 async function apiCreateContent(formData: Record<string, unknown>) {
-  const res = await fetch("/api/admin/content", {
+  const res = await adminFetch("/api/admin/content", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(formData),
   });
   return res.json();

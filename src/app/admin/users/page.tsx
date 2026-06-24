@@ -25,20 +25,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Search, ShieldCheck, User, Pencil, Trash2, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { adminFetch } from "@/lib/admin/client-helpers";
 import { toast } from "sonner";
-
-// ---------- Helper: get auth header ----------
-async function getAuthHeaders(): Promise<HeadersInit> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${session?.access_token ?? ""}`,
-  };
-}
 
 // ---------- Types ----------
 interface UserRow {
@@ -75,7 +63,7 @@ export default function UsersPage() {
     queryFn: async () => {
       const sp = new URLSearchParams();
       if (search) sp.set("search", search);
-      const res = await fetch(`/api/admin/users?${sp}`);
+      const res = await adminFetch(`/api/admin/users?${sp}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       return (json.data ?? []) as UserRow[];
@@ -91,10 +79,8 @@ export default function UsersPage() {
       avatar_url?: string;
       is_admin?: boolean;
     }) => {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`/api/admin/users?id=${payload.id}`, {
+      const res = await adminFetch(`/api/admin/users?id=${payload.id}`, {
         method: "PATCH",
-        headers,
         body: JSON.stringify({
           display_name: payload.display_name,
           avatar_url: payload.avatar_url,
@@ -116,10 +102,8 @@ export default function UsersPage() {
   // ---------- Delete mutation ----------
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`/api/admin/users?id=${userId}`, {
+      const res = await adminFetch(`/api/admin/users?id=${userId}`, {
         method: "DELETE",
-        headers,
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);

@@ -367,13 +367,41 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                     )}
                   </h2>
 
-                  {/* Premium warning for non-subscribers */}
-                  {content.is_premium_only && !isSubscriber && (
-                    <Badge className="rounded-lg bg-cinema-gold/10 text-cinema-gold border-cinema-gold/30 text-xs gap-1">
-                      <Lock className="w-3 h-3" />
-                      Some episodes require subscription
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {/* Premium warning for non-subscribers */}
+                    {content.is_premium_only && !isSubscriber && (
+                      <Badge className="rounded-lg bg-cinema-gold/10 text-cinema-gold border-cinema-gold/30 text-xs gap-1">
+                        <Lock className="w-3 h-3" />
+                        Some episodes require subscription
+                      </Badge>
+                    )}
+
+                    {/* Play First Episode button for TV series */}
+                    {episodes.length > 0 && !(content.is_premium_only && !isSubscriber) && (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="rounded-xl bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold text-xs"
+                      >
+                        <Link href={`/watch/${content.id}/${episodes[0].id}`}>
+                          <Play className="w-3.5 h-3.5 mr-1.5" />
+                          Play S1 E1
+                        </Link>
+                      </Button>
+                    )}
+                    {episodes.length > 0 && content.is_premium_only && !isSubscriber && (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="rounded-xl bg-cinema-gold hover:bg-cinema-gold/80 text-black font-semibold text-xs"
+                      >
+                        <Link href="/profile/subscription">
+                          <Crown className="w-3.5 h-3.5 mr-1.5" />
+                          Subscribe to Watch
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {episodes.length > 0 ? (

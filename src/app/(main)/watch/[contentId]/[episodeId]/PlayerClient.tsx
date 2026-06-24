@@ -93,6 +93,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
   const [isBuffering, setIsBuffering] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showEpisodeList, setShowEpisodeList] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(!isVidapiEmbed);
   const [seekProgress, setSeekProgress] = useState<number | null>(null);
 
   // Derived
@@ -368,6 +369,16 @@ export default function PlayerClient({ data }: PlayerClientProps) {
     };
   }, []);
 
+  // For vidapi: auto-hide top bar after iframe loads so the player has full control
+  useEffect(() => {
+    if (isVidapiEmbed && iframeLoaded) {
+      const timer = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVidapiEmbed, iframeLoaded]);
+
   // ---------------------------------------------------------------------------
   // Keyboard shortcuts
   // ---------------------------------------------------------------------------
@@ -462,14 +473,22 @@ export default function PlayerClient({ data }: PlayerClientProps) {
       {/* Video Element or VidAPI iframe */}
       <div className="flex-1 relative">
         {isVidapiEmbed && !isLocked ? (
-          <iframe
-            src={videoUrl}
-            className="w-full h-full border-0"
-            allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            referrerPolicy="no-referrer"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
-          />
+          <>
+            {!iframeLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center z-10 bg-black">
+                <Loader2 className="w-12 h-12 text-white/80 animate-spin" />
+              </div>
+            )}
+            <iframe
+              src={videoUrl}
+              className="w-full h-full border-0"
+              allowFullScreen
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              referrerPolicy="no-referrer"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
+              onLoad={() => setIframeLoaded(true)}
+            />
+          </>
         ) : (
           <video
             ref={videoRef}
@@ -487,8 +506,8 @@ export default function PlayerClient({ data }: PlayerClientProps) {
           />
         )}
 
-        {/* Buffering spinner */}
-        {isBuffering && isPlaying && (
+        {/* Buffering spinner (only for native video) */}
+        {isBuffering && isPlaying && !isVidapiEmbed && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Loader2 className="w-12 h-12 text-white/80 animate-spin" />
           </div>
@@ -537,7 +556,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
         <div
           className={`absolute top-0 left-0 right-0 z-20 transition-opacity duration-300 ${
             isVidapiEmbed
-              ? "opacity-100"
+              ? (showControls || showEpisodeList ? "opacity-100" : "opacity-0 pointer-events-none")
               : (showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none")
           }`}
         >
@@ -583,8 +602,8 @@ export default function PlayerClient({ data }: PlayerClientProps) {
           </div>
         </div>
 
-        {/* Center — big play/pause button */}
-        {!isPlaying && !isLocked && (
+        {/* Center — big play/pause button (only for native video, not vidapi iframe) */}
+        {!isPlaying && !isLocked && !isVidapiEmbed && (
           <button
             onClick={togglePlay}
             className="absolute inset-0 z-10 flex items-center justify-center group"

@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { adminFetch } from "@/lib/admin/client-helpers";
 import {
   Search,
   Download,
@@ -60,23 +61,21 @@ interface ImportResultItem {
 
 async function apiSearchTmdb(params: { query: string; type: "movie" | "tv"; page?: number }) {
   const sp = new URLSearchParams({ q: params.query, type: params.type, page: String(params.page || 1) });
-  const res = await fetch(`/api/admin/content/search?${sp}`);
+  const res = await adminFetch(`/api/admin/content/search?${sp}`);
   return res.json();
 }
 
 async function apiImportTmdb(params: { tmdbId: number; type: "movie" | "tv" }) {
-  const res = await fetch("/api/admin/content/import", {
+  const res = await adminFetch("/api/admin/content/import", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
   return res.json();
 }
 
 async function apiBulkImport(items: { tmdbId: number; type: "movie" | "tv" }[]) {
-  const res = await fetch("/api/admin/content/import", {
+  const res = await adminFetch("/api/admin/content/import", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ items }),
   });
   return res.json();

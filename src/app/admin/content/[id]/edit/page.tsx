@@ -21,11 +21,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, ListVideo } from "lucide-react";
 import Link from "next/link";
 import type { Content } from "@/lib/supabase/types";
+import { adminFetch } from "@/lib/admin/client-helpers";
 
 async function apiUpdateContent(id: string, formData: Record<string, unknown>) {
-  const res = await fetch(`/api/admin/content/${id}`, {
+  const res = await adminFetch(`/api/admin/content/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(formData),
   });
   return res.json();
@@ -58,7 +58,7 @@ export default function EditContentPage() {
   useEffect(() => {
     async function fetchContent() {
       try {
-        const res = await fetch(`/api/admin/content/${params.id}`);
+        const res = await adminFetch(`/api/admin/content/${params.id}`);
         const json = await res.json();
         if (json.error) {
           toast({ title: "Failed to load", description: json.error, variant: "destructive" });

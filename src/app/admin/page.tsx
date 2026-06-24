@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { adminFetch } from "@/lib/admin/client-helpers";
 // Fetch-based, no server actions
 async function fetchDashboardStats() {
-  const res = await fetch("/api/admin/stats");
+  const res = await adminFetch("/api/admin/stats");
   if (!res.ok) throw new Error("Failed to fetch stats");
   return res.json();
 }

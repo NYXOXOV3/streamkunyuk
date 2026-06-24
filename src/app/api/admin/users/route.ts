@@ -1,27 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-// ---------- Helper: verify request is from an admin ----------
-async function isAdmin(req: NextRequest): Promise<boolean> {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return false;
-    const token = authHeader.slice(7);
-
-    const supabase = await createAdminClient();
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return false;
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
-    return profile?.is_admin === true;
-  } catch {
-    return false;
-  }
-}
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 // ---------- Helper: get current user's JWT from request ----------
 function getToken(req: NextRequest): string | null {
@@ -41,6 +20,9 @@ interface UserRow {
 }
 
 export async function GET(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   try {
     const supabase = await createAdminClient();
     const search = request.nextUrl.searchParams.get("search") || undefined;
@@ -106,11 +88,10 @@ export async function GET(request: NextRequest) {
 // PATCH  /api/admin/users?id=<uuid>  — update display_name / is_admin
 // ------------------------------------------------------------------
 export async function PATCH(request: NextRequest) {
-  try {
-    if (!(await isAdmin(request))) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
 
+  try {
     const supabase = await createAdminClient();
     const userId = request.nextUrl.searchParams.get("id");
     if (!userId) {
@@ -146,11 +127,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE  /api/admin/users?id=<uuid>  — delete a user's profile & auth
 // ------------------------------------------------------------------
 export async function DELETE(request: NextRequest) {
-  try {
-    if (!(await isAdmin(request))) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
 
+  try {
     const supabase = await createAdminClient();
     const userId = request.nextUrl.searchParams.get("id");
     if (!userId) {

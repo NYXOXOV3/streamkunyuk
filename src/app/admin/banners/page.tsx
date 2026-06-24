@@ -13,6 +13,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { adminFetch } from "@/lib/admin/client-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -123,7 +124,7 @@ export default function BannersPage() {
   } = useQuery<BannerItem[]>({
     queryKey: ["admin-banners"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/banners");
+      const res = await adminFetch("/api/admin/banners");
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       if (json.tableMissing) throw new Error("TABLE_MISSING");
@@ -140,7 +141,7 @@ export default function BannersPage() {
   const { data: contentOptions = [] } = useQuery<ContentOption[]>({
     queryKey: ["admin-banner-content-options"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/content?status=published&limit=100");
+      const res = await adminFetch("/api/admin/content?status=published&limit=100");
       const json = await res.json();
       return (json.data ?? []).map((c: Record<string, unknown>) => ({
         id: c.id,
@@ -174,9 +175,8 @@ export default function BannersPage() {
             end_date: data.end_date || null,
           };
 
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const json = await res.json();
@@ -194,7 +194,7 @@ export default function BannersPage() {
   // ---- Delete mutation ----
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/banners?id=${id}`, {
+      const res = await adminFetch(`/api/admin/banners?id=${id}`, {
         method: "DELETE",
       });
       const json = await res.json();

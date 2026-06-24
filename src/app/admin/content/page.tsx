@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Content, ContentType } from "@/lib/supabase/types";
+import { adminFetch } from "@/lib/admin/client-helpers";
 import {
   Plus,
   Search,
@@ -68,7 +69,7 @@ export default function ContentListPage() {
       if (typeFilter !== "all") sp.set("type", typeFilter);
       if (statusFilter !== "all") sp.set("status", statusFilter);
       if (search) sp.set("search", search);
-      const res = await fetch(`/api/admin/content?${sp}`);
+      const res = await adminFetch(`/api/admin/content?${sp}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       return (json.data ?? []) as Content[];
@@ -78,7 +79,7 @@ export default function ContentListPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/content/${id}`, { method: "DELETE" });
+      const res = await adminFetch(`/api/admin/content/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "Delete failed");
       return json;

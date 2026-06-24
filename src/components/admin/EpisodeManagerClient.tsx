@@ -16,6 +16,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { adminFetch } from "@/lib/admin/client-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,49 +75,45 @@ import {
   Image,
 } from "lucide-react";
 
-// Fetch-based API helpers — no server actions
+// Fetch-based API helpers — uses adminFetch for auth headers
 async function apiGetEpisodes(contentId: string) {
-  const res = await fetch(`/api/admin/episodes?contentId=${contentId}`);
+  const res = await adminFetch(`/api/admin/episodes?contentId=${contentId}`);
   if (!res.ok) throw new Error("Failed to fetch episodes");
   return res.json();
 }
 
 async function apiCreateEpisode(contentId: string, data: Record<string, unknown>) {
-  const res = await fetch("/api/admin/episodes", {
+  const res = await adminFetch("/api/admin/episodes", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contentId, ...data }),
   });
   return res.json();
 }
 
 async function apiUpdateEpisode(episodeId: string, data: Record<string, unknown>) {
-  const res = await fetch(`/api/admin/episodes/${episodeId}`, {
+  const res = await adminFetch(`/api/admin/episodes/${episodeId}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   return res.json();
 }
 
 async function apiDeleteEpisode(episodeId: string) {
-  const res = await fetch(`/api/admin/episodes/${episodeId}`, { method: "DELETE" });
+  const res = await adminFetch(`/api/admin/episodes/${episodeId}`, { method: "DELETE" });
   return res.json();
 }
 
 async function apiToggleLock(episodeId: string, updates: { is_locked?: boolean; is_free_trial?: boolean }) {
-  const res = await fetch("/api/admin/episodes/bulk", {
+  const res = await adminFetch("/api/admin/episodes/bulk", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ episodeId, ...updates }),
   });
   return res.json();
 }
 
 async function apiBulkUpdate(contentId: string, updates: { is_locked?: boolean; is_free_trial?: boolean }, episodeIds?: string[]) {
-  const res = await fetch("/api/admin/episodes/bulk", {
+  const res = await adminFetch("/api/admin/episodes/bulk", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contentId, episodeIds, ...updates }),
   });
   return res.json();
