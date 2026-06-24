@@ -1,9 +1,15 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Content, Episode } from "@/lib/supabase/types";
+import { getActivePlayerProvider } from "@/lib/admin/player-provider-actions";
+import { buildEmbedUrl, type VideoPlayerProvider } from "@/lib/api/tmdb";
+import type { Content, Episode, Category } from "@/lib/supabase/types";
 import PlayerClient from "./PlayerClient";
+import { Badge } from "@/components/ui/badge";
+import { Star, Calendar, Clock, Film, Tv, Crown, Lock } from "lucide-react";
+import { TYPE_LABELS } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,9 +19,21 @@ interface PlayerPageData {
   episode: Episode;
   content: Content;
   episodes: Episode[];
+  categories: Category[];
   isSubscriber: boolean;
   isAuthenticated: boolean;
+  embedUrl: string | null;
+  isIframe: boolean;
+  activeProvider: VideoPlayerProvider;
 }
+
+const TYPE_ICONS: Record<string, typeof Film> = {
+  movie: Film,
+  series: Tv,
+  anime: Tv,
+  donghua: Tv,
+  microdrama: Film,
+};
 
 // ---------------------------------------------------------------------------
 // Data Fetching (server-side)
@@ -57,7 +75,7 @@ async function PlayerPageContent({
   const { data: episode, error: epError } = await supabase
     .from("episodes")
     .select(
-      "id, content_id, episode_number, title, synopsis, thumbnail_url, runtime_seconds, video_url, video_url_backup, video_quality, subtitles_url, is_locked, is_free_trial"
+      "id, content_id, season_id, episode_number, title, synopsis, thumbnail_url, runtime_seconds, video_url, video_url_backup, video_quality, subtitles_url, is_locked, is_free_trial"
     )
     .eq("id", episodeId)
     .eq("content_id", contentId)
@@ -79,21 +97,76 @@ async function PlayerPageContent({
     notFound();
   }
 
-  // Fetch all episodes for navigation (sorted by episode number)
+  // Fetch categories
+  const { data: categoryRows } = await supabase
+    .from("content_categories")
+    .select("category:categories(*)")
+    .eq("content_id", contentId);
+  const categories: Category[] = (
+    categoryRows
+      ?.map((r: { category: Category | null }) => r.category)
+      .filter(Boolean) ?? []
+  ) as Category[];
+
+  // Fetch all episodes for navigation
   const { data: episodes } = await supabase
     .from("episodes")
     .select(
-      "id, content_id, episode_number, title, synopsis, thumbnail_url, runtime_seconds, video_url, video_url_backup, video_quality, subtitles_url, is_locked, is_free_trial"
+      "id, content_id, season_id, episode_number, title, synopsis, thumbnail_url, runtime_seconds, video_url, video_url_backup, video_quality, subtitles_url, is_locked, is_free_trial"
     )
     .eq("content_id", contentId)
     .order("episode_number", { ascending: true });
+
+  // Fetch season number for this episode (if TV)
+  let seasonNumber = 1;
+  if (episode.season_id) {
+    const { data: season } = await supabase
+      .from("seasons")
+      .select("season_number")
+      .eq("id", episode.season_id)
+      .single();
+    if (season) seasonNumber = season.season_number;
+  }
+
+  // Get active player provider and build embed URL dynamically
+  let embedUrl: string | null = null;
+  let isIframe = false;
+  let activeProvider: VideoPlayerProvider = "2embed";
+
+  if (content.tmdb_id) {
+    try {
+      const { provider } = await getActivePlayerProvider();
+      activeProvider = provider;
+      const contentType = content.type === "movie" ? "movie" : "tv";
+      embedUrl = buildEmbedUrl(
+        provider,
+        content.tmdb_id,
+        contentType,
+        seasonNumber,
+        episode.episode_number,
+      );
+      isIframe = true;
+    } catch {
+      // Fallback to stored URL
+      embedUrl = episode.video_url || episode.video_url_backup || null;
+      isIframe = !!embedUrl;
+    }
+  } else {
+    // No tmdb_id — use stored URL
+    embedUrl = episode.video_url || episode.video_url_backup || null;
+    isIframe = !!embedUrl;
+  }
 
   const data: PlayerPageData = {
     episode,
     content,
     episodes: episodes ?? [],
+    categories,
     isSubscriber,
     isAuthenticated,
+    embedUrl,
+    isIframe,
+    activeProvider,
   };
 
   return <PlayerClient data={data} />;
@@ -123,11 +196,18 @@ export default async function EpisodePlayerPage({ params }: PageProps) {
 
 function PlayerSkeleton() {
   return (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-      <div className="w-full max-w-5xl aspect-video flex flex-col items-center justify-center gap-4">
-        <Skeleton className="w-16 h-16 rounded-full bg-white/10" />
-        <Skeleton className="h-4 w-48 bg-white/10" />
-        <Skeleton className="h-3 w-32 bg-white/10" />
+    <div className="min-h-screen bg-cinema-bg">
+      {/* Player skeleton */}
+      <div className="w-full aspect-video max-h-[70vh] bg-cinema-surface animate-shimmer" />
+      {/* Content skeleton */}
+      <div className="max-w-[1400px] mx-auto px-5 md:px-8 lg:px-12 py-8 space-y-4">
+        <Skeleton className="h-8 w-96 max-w-full rounded-xl" />
+        <Skeleton className="h-4 w-64 rounded-xl" />
+        <div className="space-y-2 mt-4">
+          <Skeleton className="h-4 w-full rounded-xl" />
+          <Skeleton className="h-4 w-full rounded-xl" />
+          <Skeleton className="h-4 w-3/4 rounded-xl" />
+        </div>
       </div>
     </div>
   );

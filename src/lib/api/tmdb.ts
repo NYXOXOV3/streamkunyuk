@@ -295,7 +295,83 @@ export function parseTmdbToContentType(
 }
 
 // ---------------------------------------------------------------------------
-// VidAPI URL Builder
+// Video Player URL Builders (multi-provider)
+// ---------------------------------------------------------------------------
+
+/**
+ * Supported video player providers.
+ * Each provider has a unique `id` used in the database and admin panel.
+ */
+export type VideoPlayerProvider = "vidapi" | "2embed";
+
+/**
+ * Build a 2Embed.cc embed URL for a movie.
+ * Docs: https://www.2embed.cc/
+ *   Movie: https://www.2embed.cc/embed/{tmdbId}
+ *   TV:     https://www.2embed.cc/embedtv/{tmdbId}&s={season}&e={episode}
+ */
+export function build2EmbedMovieUrl(tmdbId: number): string {
+  return `https://www.2embed.cc/embed/${tmdbId}`;
+}
+
+/**
+ * Build a 2Embed.cc embed URL for a TV episode.
+ */
+export function build2EmbedTvUrl(
+  tmdbId: number,
+  season: number,
+  episode: number,
+): string {
+  return `https://www.2embed.cc/embedtv/${tmdbId}&s=${season}&e=${episode}`;
+}
+
+/**
+ * Build a 2Embed.cc URL based on content type.
+ */
+export function build2EmbedUrl(
+  tmdbId: number,
+  type: "movie" | "tv",
+  season?: number,
+  episode?: number,
+): string {
+  if (type === "movie") return build2EmbedMovieUrl(tmdbId);
+  return build2EmbedTvUrl(tmdbId, season ?? 1, episode ?? 1);
+}
+
+/**
+ * Build an embed URL for any supported provider.
+ * This is the main entry point used by the player and import system.
+ */
+export function buildEmbedUrl(
+  provider: VideoPlayerProvider,
+  tmdbId: number,
+  type: "movie" | "tv",
+  season?: number,
+  episode?: number,
+  config?: VidapiPlayerConfig,
+): string {
+  switch (provider) {
+    case "2embed":
+      return build2EmbedUrl(tmdbId, type, season, episode);
+    case "vidapi":
+    default:
+      return buildVidapiUrl(tmdbId, type, season, episode, config);
+  }
+}
+
+/**
+ * Detect the provider from a stored embed URL.
+ * Used to identify which provider was used for existing episodes.
+ */
+export function detectEmbedProvider(videoUrl: string): VideoPlayerProvider | null {
+  if (!videoUrl) return null;
+  if (videoUrl.includes("2embed.cc")) return "2embed";
+  if (videoUrl.includes("vidapi.qzz.io")) return "vidapi";
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// VidAPI URL Builder (legacy — still supported)
 // ---------------------------------------------------------------------------
 
 /**

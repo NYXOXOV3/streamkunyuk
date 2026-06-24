@@ -31,6 +31,7 @@ const navItems = [
   { href: "/admin/content", label: "Content", icon: Film },
   { href: "/admin/content/new", label: "Add Content", icon: ListVideo },
   { href: "/admin/content/tmdb-import", label: "TMDB Import", icon: ListVideo },
+  { href: "/admin/player-settings", label: "Player", icon: Play },
   { href: "/admin/banners", label: "Banners", icon: Image },
   { href: "/admin/api-config", label: "API Config", icon: Key },
   { href: "/admin/users", label: "Users", icon: Users },
