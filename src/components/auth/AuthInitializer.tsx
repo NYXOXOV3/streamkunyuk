@@ -3,15 +3,15 @@
 /**
  * Auth Initializer
  *
- * Membaca session dari localStorage (via @supabase/supabase-js).
- * getSession() langsung return tanpa network call kalo session masih valid.
- * Fallback ke getUser() kalo getSession() gagal.
+ * 1. getSession() dari localStorage (via @supabase/supabase-js)
+ * 2. Kalo dapet token, fetch profile via /api/auth/profile
+ *    (pake service_role key — bypass RLS — jadi data admin kebaca)
+ * 3. Set auth store
  */
 
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/stores/authStore";
-import type { Profile, Subscription } from "@/lib/supabase/types";
 
 export function AuthInitializer() {
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -25,48 +25,47 @@ export function AuthInitializer() {
       setLoading(true);
 
       try {
-        // getSession() reads from localStorage — instant, no network
+        // Get session from localStorage
         const { data: { session } } = await supabase.auth.getSession();
-
-        if (session?.user && mounted) {
-          await setUser(session.user.id, session.user.email!);
+        if (!session?.user && mounted) {
+          setAuth({ userId: null, email: null, profile: null, subscription: null });
+          setLoading(false);
           return;
         }
 
-        // Fallback: getUser() — validates token with server
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && mounted) {
-          await setUser(user.id, user.email!);
+        if (!session) {
+          if (mounted) {
+            setAuth({ userId: null, email: null, profile: null, subscription: null });
+            setLoading(false);
+          }
           return;
         }
-      } catch { /* no session */ }
 
-      if (mounted) {
-        setAuth({ userId: null, email: null, profile: null, subscription: null });
-        setLoading(false);
-      }
-    }
+        // Fetch profile via API (bypasses RLS with service_role key)
+        const res = await fetch("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-    async function setUser(userId: string, email: string) {
-      // Set auth immediately (so UI renders fast), then fetch profile in background
-      setAuth({ userId, email, profile: null, subscription: null });
-
-      try {
-        const [profileRes, subRes] = await Promise.all([
-          supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-          supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).maybeSingle(),
-        ]);
-
-        if (mounted) {
+        if (res.ok && mounted) {
+          const data = await res.json();
           setAuth({
-            userId, email,
-            profile: (profileRes.data as unknown as Profile) ?? null,
-            subscription: (subRes.data as unknown as Subscription) ?? null,
+            userId: data.userId,
+            email: data.email,
+            profile: data.profile,
+            subscription: data.subscription,
+          });
+        } else if (mounted) {
+          // Fallback: set with userId only
+          setAuth({
+            userId: session.user.id,
+            email: session.user.email!,
+            profile: null,
+            subscription: null,
           });
         }
       } catch {
         if (mounted) {
-          setAuth({ userId, email, profile: null, subscription: null });
+          setAuth({ userId: null, email: null, profile: null, subscription: null });
         }
       } finally {
         if (mounted) setLoading(false);
@@ -85,7 +84,40 @@ export function AuthInitializer() {
           return;
         }
 
-        await setUser(session.user.id, session.user.email!);
+        // Fetch profile via API
+        setLoading(true);
+        try {
+          const res = await fetch("/api/auth/profile", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (res.ok && mounted) {
+            const data = await res.json();
+            setAuth({
+              userId: data.userId,
+              email: data.email,
+              profile: data.profile,
+              subscription: data.subscription,
+            });
+          } else if (mounted) {
+            setAuth({
+              userId: session.user.id,
+              email: session.user.email!,
+              profile: null,
+              subscription: null,
+            });
+          }
+        } catch {
+          if (mounted) {
+            setAuth({
+              userId: session.user.id,
+              email: session.user.email!,
+              profile: null,
+              subscription: null,
+            });
+          }
+        } finally {
+          if (mounted) setLoading(false);
+        }
       },
     );
 

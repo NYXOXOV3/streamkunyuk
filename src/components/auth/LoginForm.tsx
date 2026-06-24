@@ -65,28 +65,31 @@ export function LoginForm() {
       return;
     }
 
-    // Immediately update the auth store with the session data
-    const userId = data.session.user.id;
-    const userEmail = data.session.user.email!;
-
-    // Fetch profile and subscription
+    // Fetch profile via API (bypasses RLS with service_role key)
     try {
-      const [profileRes, subRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-        supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).maybeSingle(),
-      ]);
-
-      useAuthStore.getState().setAuth({
-        userId,
-        email: userEmail,
-        profile: (profileRes.data as unknown as Profile) ?? null,
-        subscription: (subRes.data as unknown as Subscription) ?? null,
+      const res = await fetch("/api/auth/profile", {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
+      if (res.ok) {
+        const json = await res.json();
+        useAuthStore.getState().setAuth({
+          userId: json.userId,
+          email: json.email,
+          profile: json.profile,
+          subscription: json.subscription,
+        });
+      } else {
+        useAuthStore.getState().setAuth({
+          userId: data.session.user.id,
+          email: data.session.user.email!,
+          profile: null,
+          subscription: null,
+        });
+      }
     } catch {
-      // Set auth with just userId/email even if profile fetch fails
       useAuthStore.getState().setAuth({
-        userId,
-        email: userEmail,
+        userId: data.session.user.id,
+        email: data.session.user.email!,
         profile: null,
         subscription: null,
       });

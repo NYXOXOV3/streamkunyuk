@@ -85,24 +85,22 @@ export function RegisterForm() {
       const userEmail = signInData.session.user.email!;
 
       try {
-        const [profileRes, subRes] = await Promise.all([
-          supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-          supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).maybeSingle(),
-        ]);
-
-        useAuthStore.getState().setAuth({
-          userId,
-          email: userEmail,
-          profile: (profileRes.data as unknown as Profile) ?? null,
-          subscription: (subRes.data as unknown as Subscription) ?? null,
+        const res = await fetch("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${signInData.session.access_token}` },
         });
+        if (res.ok) {
+          const json = await res.json();
+          useAuthStore.getState().setAuth({
+            userId: json.userId,
+            email: json.email,
+            profile: json.profile,
+            subscription: json.subscription,
+          });
+        } else {
+          useAuthStore.getState().setAuth({ userId, email: userEmail, profile: null, subscription: null });
+        }
       } catch {
-        useAuthStore.getState().setAuth({
-          userId,
-          email: userEmail,
-          profile: null,
-          subscription: null,
-        });
+        useAuthStore.getState().setAuth({ userId, email: userEmail, profile: null, subscription: null });
       }
     }
 
