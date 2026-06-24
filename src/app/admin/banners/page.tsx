@@ -37,7 +37,6 @@ import {
   Image as ImageIcon,
   Film,
   Plus,
-  GripVertical,
   Pencil,
   Trash2,
   Eye,

@@ -4,7 +4,7 @@ import { HeroBanner } from "@/components/home/HeroBanner";
 import { BannerHero, type BannerItem } from "@/components/home/BannerHero";
 import { ContentCarousel } from "@/components/home/ContentCarousel";
 import { HomeSkeleton } from "@/components/home/HomeSkeleton";
-import type { Content, ContentType, Category, Episode, WatchHistory } from "@/lib/supabase/types";
+import type { Content, ContentType, Episode } from "@/lib/supabase/types";
 
 // ---------------------------------------------------------------------------
 // Data types

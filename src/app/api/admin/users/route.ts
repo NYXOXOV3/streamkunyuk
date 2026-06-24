@@ -34,8 +34,10 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (search) {
+      // Escape PostgREST filter special characters to prevent filter injection
+      const safe = search.replace(/%/g, "\\%").replace(/\./g, "\\.").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/,/g, "\\,");
       profilesQuery = profilesQuery.or(
-        `display_name.ilike.%${search}%`,
+        `display_name.ilike.%${safe}%`,
       );
     }
 

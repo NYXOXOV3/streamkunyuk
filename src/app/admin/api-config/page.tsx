@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { adminFetch } from "@/lib/admin/client-helpers";
@@ -86,17 +86,33 @@ function ProviderConfigCard({
       data.data?.find((p: { provider_name: string }) => p.provider_name === providerName),
   });
 
+  // Sync base URL from DB when provider data loads
+  useEffect(() => {
+    if (providerInfo?.base_url) {
+      setBaseUrl(providerInfo.base_url);
+    }
+  }, [providerInfo?.base_url]);
+
   async function handleSave() {
     setIsSaving(true);
     try {
+      // If API key is blank but a key already exists in DB, skip key update
+      const apiKeyToSave = apiKey.trim() || undefined;
+      if (!apiKeyToSave && !providerInfo?.has_api_key) {
+        toast({ title: "Error", description: "API Key is required", variant: "destructive" });
+        setIsSaving(false);
+        return;
+      }
+
       const result = await apiSaveConfig({
         provider_name: providerName,
         provider_type: providerType,
         base_url: baseUrl,
-        api_key: apiKey,
+        api_key: apiKeyToSave ?? "",
         secret_key: needsSecretKey ? secretKey : undefined,
         is_active: true,
         description: "",
+        skip_key_update: !apiKeyToSave,
       });
 
       if (result.success) {

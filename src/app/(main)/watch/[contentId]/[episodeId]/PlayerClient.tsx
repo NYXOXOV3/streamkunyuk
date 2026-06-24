@@ -83,6 +83,10 @@ export default function PlayerClient({ data }: PlayerClientProps) {
     setMuted: storeSetMuted,
   } = usePlayerStore();
 
+  // Detect vidapi embed URL — use iframe instead of native video
+  const videoUrl = episode.video_url || episode.video_url_backup;
+  const isVidapiEmbed = !!videoUrl && videoUrl.includes("vidapi.qzz.io");
+
   // Local state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -105,10 +109,6 @@ export default function PlayerClient({ data }: PlayerClientProps) {
   // Premium lock: episode is locked and user is not a subscriber (and not free trial)
   const isLocked =
     episode.is_locked && !isSubscriber && !episode.is_free_trial;
-
-  // Detect vidapi embed URL — use iframe instead of native video
-  const videoUrl = episode.video_url || episode.video_url_backup;
-  const isVidapiEmbed = !!videoUrl && videoUrl.includes("vidapi.qzz.io");
 
   // ---------------------------------------------------------------------------
   // Video init: HLS.js or native

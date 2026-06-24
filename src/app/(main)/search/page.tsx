@@ -15,7 +15,7 @@
 import { Suspense } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, Loader2, Film, X, ArrowLeft } from "lucide-react";
+import { Search, Loader2, Film, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -86,6 +86,7 @@ export async function saveApiConfig(formData: {
   api_key: string;
   secret_key?: string;
   is_active: boolean;
+  skip_key_update?: boolean;
 }): Promise<{ success: boolean; error: string | null }> {
   try {
     const parsed = apiProviderSchema.safeParse({
@@ -100,7 +101,8 @@ export async function saveApiConfig(formData: {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    if (!formData.api_key.trim()) {
+    // Only require API key when creating new or explicitly updating
+    if (!formData.skip_key_update && !formData.api_key.trim()) {
       return { success: false, error: "API Key is required" };
     }
 
@@ -125,27 +127,29 @@ export async function saveApiConfig(formData: {
 
     if (providerError) throw providerError;
 
-    // Encrypt and save API key
-    // Use delete+insert because api_credentials lacks a unique constraint for upsert
-    const encryptedApiKey = await encrypt(formData.api_key, encryptionKey);
-    await supabase
-      .from("api_credentials")
-      .delete()
-      .eq("provider_id", provider.id)
-      .eq("credential_type", "api_key");
-    // bytea columns: use PostgreSQL hex format (\x + hex bytes)
-    // Supabase JS serializes Buffer/Uint8Array as JSON, so we pass hex strings
-    const apiKeyHex = Buffer.from(encryptedApiKey.encrypted, "base64").toString("hex");
-    const apiIvHex = Buffer.from(encryptedApiKey.iv, "base64").toString("hex");
-    const { error: credError } = await supabase
-      .from("api_credentials")
-      .insert({
-        provider_id: provider.id,
-        credential_type: "api_key",
-        encrypted_value: "\\x" + apiKeyHex,
-        iv: "\\x" + apiIvHex,
-      });
-    if (credError) throw credError;
+    // Encrypt and save API key (skip if admin left blank to keep existing)
+    if (!formData.skip_key_update && formData.api_key.trim()) {
+      // Use delete+insert because api_credentials lacks a unique constraint for upsert
+      const encryptedApiKey = await encrypt(formData.api_key, encryptionKey);
+      await supabase
+        .from("api_credentials")
+        .delete()
+        .eq("provider_id", provider.id)
+        .eq("credential_type", "api_key");
+      // bytea columns: use PostgreSQL hex format (\x + hex bytes)
+      // Supabase JS serializes Buffer/Uint8Array as JSON, so we pass hex strings
+      const apiKeyHex = Buffer.from(encryptedApiKey.encrypted, "base64").toString("hex");
+      const apiIvHex = Buffer.from(encryptedApiKey.iv, "base64").toString("hex");
+      const { error: credError } = await supabase
+        .from("api_credentials")
+        .insert({
+          provider_id: provider.id,
+          credential_type: "api_key",
+          encrypted_value: "\\x" + apiKeyHex,
+          iv: "\\x" + apiIvHex,
+        });
+      if (credError) throw credError;
+    }
 
     // Encrypt and save secret key (if provided)
     if (formData.secret_key?.trim()) {
