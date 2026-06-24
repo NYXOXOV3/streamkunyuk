@@ -19,7 +19,7 @@ const ALGORITHM = "AES-GCM";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
-function getKey(encryptionKey: string): CryptoKey {
+async function getKey(encryptionKey: string): Promise<CryptoKey> {
   // Ensure the key is exactly 32 bytes
   const keyBytes = new TextEncoder().encode(
     encryptionKey.padEnd(32, "0").slice(0, 32),

@@ -6,10 +6,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getActivePlayerProvider } from "@/lib/admin/player-provider-actions";
 import { buildEmbedUrl, type VideoPlayerProvider } from "@/lib/api/tmdb";
 import type { Content, Episode, Category } from "@/lib/supabase/types";
+import type { Metadata } from "next";
 import PlayerClient from "./PlayerClient";
 import { Badge } from "@/components/ui/badge";
 import { Star, Calendar, Clock, Film, Tv, Crown, Lock } from "lucide-react";
 import { TYPE_LABELS } from "@/lib/constants";
+
+// ---------------------------------------------------------------------------
+// SEO — Dynamic metadata from content data
+// ---------------------------------------------------------------------------
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ contentId: string; episodeId: string }>;
+}): Promise<Metadata> {
+  const { contentId, episodeId } = await params;
+  try {
+    const supabase = await createClient();
+    const { data: episode } = await supabase
+      .from("episodes")
+      .select("title, content:contents(title, synopsis, poster_url, type)")
+      .eq("id", episodeId)
+      .single();
+    const ep = episode as { title: string | null; content: { title: string; synopsis: string | null; poster_url: string | null; type: string } } | null;
+    const title = ep
+      ? `${ep.title || "Episode"} — ${ep.content.title}`
+      : "Watch";
+    const description = ep?.content?.synopsis?.slice(0, 160) ?? "Stream premium content";
+    return {
+      title,
+      description,
+      openGraph: ep?.content?.poster_url
+        ? { title, description, images: [ep.content.poster_url] }
+        : undefined,
+    };
+  } catch {
+    return { title: "Watch — StreamVault" };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,9 +109,7 @@ async function PlayerPageContent({
   // Fetch the episode
   const { data: episode, error: epError } = await supabase
     .from("episodes")
-    .select(
-      "id, content_id, season_id, episode_number, title, synopsis, thumbnail_url, runtime_seconds, video_url, video_url_backup, video_quality, subtitles_url, is_locked, is_free_trial"
-    )
+    .select("*")
     .eq("id", episodeId)
     .eq("content_id", contentId)
     .single();
@@ -103,17 +136,15 @@ async function PlayerPageContent({
     .select("category:categories(*)")
     .eq("content_id", contentId);
   const categories: Category[] = (
-    categoryRows
-      ?.map((r: { category: Category | null }) => r.category)
-      .filter(Boolean) ?? []
-  ) as Category[];
+    (categoryRows ?? []) as unknown as { category: Category | null }[]
+  )
+    .map((r) => r.category)
+    .filter(Boolean) as Category[];
 
   // Fetch all episodes for navigation
   const { data: episodes } = await supabase
     .from("episodes")
-    .select(
-      "id, content_id, season_id, episode_number, title, synopsis, thumbnail_url, runtime_seconds, video_url, video_url_backup, video_quality, subtitles_url, is_locked, is_free_trial"
-    )
+    .select("*")
     .eq("content_id", contentId)
     .order("episode_number", { ascending: true });
 
@@ -133,7 +164,16 @@ async function PlayerPageContent({
   let isIframe = false;
   let activeProvider: VideoPlayerProvider = "2embed";
 
-  if (content.tmdb_id) {
+  // Check if this is a Melolo microdrama
+  const isMelolo = content.external_content_id?.startsWith("melolo_");
+  const meloloDramaId = isMelolo ? content.external_content_id.replace("melolo_", "") : null;
+
+  if (isMelolo && meloloDramaId) {
+    // Melolo — use our proxy API to resolve stream URL at runtime
+    activeProvider = "melolo";
+    embedUrl = `/api/melolo/stream?id=${meloloDramaId}&ep=${episode.episode_number}`;
+    isIframe = false; // Will use direct video player
+  } else if (content.tmdb_id) {
     try {
       const { provider } = await getActivePlayerProvider();
       activeProvider = provider;

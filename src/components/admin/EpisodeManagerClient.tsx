@@ -553,13 +553,13 @@ function EpisodeRow({
       <TableCell className="max-w-[180px]">
         {hasVideo ? (
           <a
-            href={episode.video_url}
+            href={episode.video_url ?? ""}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <span className="truncate font-mono max-w-[140px]">
-              {truncateUrl(episode.video_url, 30)}
+              {truncateUrl(episode.video_url ?? "", 30)}
             </span>
             <ExternalLink className="w-3 h-3 shrink-0 opacity-50" />
           </a>
@@ -771,7 +771,7 @@ export function EpisodeManagerClient({
     queryFn: async () => {
       const result = await apiGetEpisodes(contentId);
       if (result.error) throw new Error(result.error);
-      return result.data;
+      return (result.data ?? []) as Episode[];
     },
     staleTime: 1000 * 60 * 2, // 2 min stale time for admin edits
     retry: 1,
@@ -928,7 +928,7 @@ export function EpisodeManagerClient({
   function handleBulkSetFirst3FreeTrial() {
     if (episodes.length === 0) return;
     // Get first 3 episode IDs (sorted by episode_number already from query)
-    const first3Ids = episodes.slice(0, 3).map((ep) => ep.id);
+    const first3Ids = episodes.slice(0, 3).map((ep: { id: string }) => ep.id);
     // Set all as NOT free trial first, then set first 3 as free trial
     bulkMutation.mutate({
       is_free_trial: false,
@@ -936,13 +936,10 @@ export function EpisodeManagerClient({
     // After that succeeds, set first 3 as free trial
     // We do it in a single call by first clearing all, then setting first 3
     // Actually, let's do it smarter: set all to false, then the first 3 to true
-    bulkUpdateEpisodeLocks(contentId, { is_free_trial: false }).then(
+    apiBulkUpdate(contentId, { is_free_trial: false }).then(
       (clearResult) => {
         if (clearResult.success && first3Ids.length > 0) {
-          bulkUpdateEpisodeLocks(contentId, {
-            is_free_trial: true,
-            episodeIds: first3Ids,
-          }).then((setResult) => {
+          apiBulkUpdate(contentId, { is_free_trial: true }, first3Ids).then((setResult) => {
             queryClient.invalidateQueries({
               queryKey: QUERY_KEY(contentId),
             });
@@ -1134,7 +1131,7 @@ export function EpisodeManagerClient({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {episodes.map((episode) => (
+                  {(episodes as Episode[]).map((episode) => (
                     <EpisodeRow
                       key={episode.id}
                       episode={episode}

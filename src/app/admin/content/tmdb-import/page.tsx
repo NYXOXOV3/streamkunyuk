@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -257,6 +258,7 @@ function ImportProgressPanel({
 // ---------------------------------------------------------------------------
 
 export default function TmdbImportPage() {
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [type, setType] = useState<"movie" | "tv">("movie");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -272,6 +274,12 @@ export default function TmdbImportPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isBulkImporting, setIsBulkImporting] = useState(false);
   const [importResults, setImportResults] = useState<ImportResultItem[] | null>(null);
+
+  // Auto import state
+  const [isAutoImporting, setIsAutoImporting] = useState(false);
+  const [tmdbAutoType, setTmdbAutoType] = useState<"movie" | "tv">("movie");
+  const [tmdbYearFrom, setTmdbYearFrom] = useState(2024);
+  const [tmdbYearTo, setTmdbYearTo] = useState(2024);
 
   async function handleSearch(page: number = 1) {
     if (!query.trim()) return;
@@ -359,18 +367,76 @@ export default function TmdbImportPage() {
       <AdminHeader title="TMDB Import" />
 
       <div className="flex-1 p-8 space-y-6 overflow-y-auto">
-        {/* Info banner */}
-        <div className="bg-cinema-elevated/50 border border-cinema-border rounded-xl px-4 py-3 text-xs text-muted-foreground flex items-start gap-2">
-          <PlayCircle className="w-4 h-4 mt-0.5 text-cinema-red shrink-0" />
-          <div>
-            <p className="text-foreground font-medium mb-0.5">Auto-import with VidAPI Player</p>
-            <p>
-              Movies and TV shows are imported with vidapi.qzz.io player URLs.
-              TV shows automatically import all seasons and episodes.
-              Imported content is saved as <span className="text-foreground">Draft</span> — publish when ready.
+        {/* Year Range Auto Import */}
+        <Card className="bg-cinema-surface border-cinema-border rounded-2xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-[15px] font-semibold text-foreground flex items-center gap-2">
+              <Download className="w-4 h-4 text-cinema-red" />
+              Auto Import by Year
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-[12px] text-muted-foreground/70">
+              Import all movies/TV shows from TMDB for a specific year range.
+              Every item will be imported with metadata + episodes.
             </p>
-          </div>
-        </div>
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <label className="text-[11px] text-muted-foreground/70 block mb-1">Type</label>
+                <select
+                  value={tmdbAutoType}
+                  onChange={(e) => setTmdbAutoType(e.target.value as "movie" | "tv")}
+                  className="h-9 rounded-xl text-xs bg-cinema-elevated border-cinema-border text-foreground px-3"
+                >
+                  <option value="movie">Movies</option>
+                  <option value="tv">TV Series</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground/70 block mb-1">Year From</label>
+                <Input
+                  type="number" min={1900} max={2030}
+                  value={tmdbYearFrom}
+                  onChange={(e) => setTmdbYearFrom(Number(e.target.value))}
+                  className="h-9 w-24 rounded-xl text-xs bg-cinema-elevated border-cinema-border"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground/70 block mb-1">Year To</label>
+                <Input
+                  type="number" min={1900} max={2030}
+                  value={tmdbYearTo}
+                  onChange={(e) => setTmdbYearTo(Number(e.target.value))}
+                  className="h-9 w-24 rounded-xl text-xs bg-cinema-elevated border-cinema-border"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (tmdbYearFrom > tmdbYearTo) { toast.error("Year From must be ≤ Year To"); return; }
+                  setIsAutoImporting(true);
+                  try {
+                    const res = await adminFetch("/api/admin/content/auto-import", {
+                      method: "POST",
+                      body: JSON.stringify({ source: "tmdb-discover", type: tmdbAutoType, yearFrom: tmdbYearFrom, yearTo: tmdbYearTo }),
+                    });
+                    const json = await res.json();
+                    if (json.error) { toast.error(json.error); return; }
+                    toast.success(`✅ Imported ${json.imported} of ${json.total} items`);
+                    queryClient.invalidateQueries({ queryKey: ["admin-content-list"] });
+                  } catch (e) {
+                    toast.error(`Failed: ${(e as Error).message}`);
+                  } finally { setIsAutoImporting(false); }
+                }}
+                disabled={isAutoImporting}
+                className="bg-cinema-red hover:bg-cinema-red-hover text-white text-xs rounded-xl shadow-lg shadow-cinema-red/20"
+              >
+                {isAutoImporting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1.5" />}
+                {isAutoImporting ? "Importing..." : "Start Import"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Search Bar */}
         <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">

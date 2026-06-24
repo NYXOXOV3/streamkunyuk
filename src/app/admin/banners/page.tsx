@@ -89,6 +89,7 @@ interface BannerFormData {
   is_active: boolean;
   start_date: string;
   end_date: string;
+  sort_order?: number;
 }
 
 const EMPTY_FORM: BannerFormData = {
@@ -133,8 +134,8 @@ export default function BannersPage() {
     staleTime: 1000 * 30,
   });
 
-  const isTableMissing =
-    !isLoading && error && (error as Error).message === "TABLE_MISSING";
+  const isTableMissing: boolean =
+    !isLoading && !!error && (error as Error).message === "TABLE_MISSING";
 
   // ---- Fetch content options for the content selector ----
   const { data: contentOptions = [] } = useQuery<ContentOption[]>({

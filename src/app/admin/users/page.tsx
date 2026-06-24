@@ -129,8 +129,8 @@ export default function UsersPage() {
     if (!editUser) return;
     editMutation.mutate({
       id: editUser.id,
-      display_name: editName.trim() || null,
-      avatar_url: editAvatar.trim() || null,
+      display_name: editName.trim() || undefined,
+      avatar_url: editAvatar.trim() || undefined,
       is_admin: editIsAdmin,
     });
   }

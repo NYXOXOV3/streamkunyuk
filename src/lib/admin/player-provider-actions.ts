@@ -47,7 +47,7 @@ export async function getActivePlayerProvider(): Promise<{
       .single();
 
     if (setting?.value) {
-      const valid: VideoPlayerProvider[] = ["2embed", "vidapi"];
+      const valid: VideoPlayerProvider[] = ["2embed", "vidapi", "melolo"];
       if (valid.includes(setting.value as VideoPlayerProvider)) {
         return { provider: setting.value as VideoPlayerProvider, error: null };
       }
@@ -63,7 +63,7 @@ export async function getActivePlayerProvider(): Promise<{
       .single();
 
     if (activeProvider?.provider_name) {
-      const valid: VideoPlayerProvider[] = ["2embed", "vidapi"];
+      const valid: VideoPlayerProvider[] = ["2embed", "vidapi", "melolo"];
       if (valid.includes(activeProvider.provider_name as VideoPlayerProvider)) {
         return { provider: activeProvider.provider_name as VideoPlayerProvider, error: null };
       }
@@ -214,5 +214,11 @@ const PROVIDER_REGISTRY: Record<
     baseUrl: "https://vidapi.qzz.io",
     description:
       "Customizable player with color themes, autoplay, next episode button. Supports TMDB ID.",
+  },
+  melolo: {
+    displayName: "Melolo",
+    baseUrl: "https://api.sonzaix.indevs.in/melolo",
+    description:
+      "Melolo Short Drama — Indonesian short dramas with direct video playback.",
   },
 };

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     for (const sub of subs ?? []) {
       subMap.set(sub.user_id, {
         status: sub.status,
-        tier: (sub.subscription_tier as { display_name: string } | null)?.display_name ?? null,
+        tier: (sub.subscription_tier as unknown as { display_name: string }[] | null)?.[0]?.display_name ?? null,
         end: sub.current_period_end,
       });
     }

@@ -40,10 +40,10 @@ export const manualContentSchema = z.object({
   synopsis: z.string().max(5000).optional().default(""),
   type: z.enum(["anime", "donghua"]),
   release_year: z
-    .number({ invalid_type_error: "Must be a number" })
-    .int("Must be a whole number")
-    .min(1900)
-    .max(2040)
+    .number({ message: "Must be a number" })
+    .int()
+    .min(1900, "Must be ≥ 1900")
+    .max(2040, "Must be ≤ 2040")
     .optional(),
   runtime_minutes: z
     .number()

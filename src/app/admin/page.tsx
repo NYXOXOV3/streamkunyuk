@@ -113,9 +113,9 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {stats?.contentByType.map(({ type, count }) => {
+                {stats?.contentByType.map(({ type, count }: { type: string; count: number }) => {
                   const max = Math.max(
-                    ...(stats?.contentByType.map((c) => c.count) ?? [1]),
+                    ...((stats?.contentByType ?? []).map((c: { type: string; count: number }) => c.count) ?? [1]),
                   );
                   const pct = Math.round((count / max) * 100);
 

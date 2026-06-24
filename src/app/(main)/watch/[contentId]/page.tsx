@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EpisodeGrid } from "@/components/content/EpisodeGrid";
 import type { Content, ContentType, Category, Episode } from "@/lib/supabase/types";
+import type { Metadata } from "next";
 import { TYPE_LABELS } from "@/lib/constants";
 import {
   Play,
@@ -99,8 +100,8 @@ async function ContentDetailContent({
     .eq("content_id", contentId);
 
   const categories: Category[] = (
-    categoryRows
-      ?.map((r: { category: Category | null }) => r.category)
+    ((categoryRows ?? []) as unknown as { category: Category | null }[])
+      .map((r) => r.category)
       .filter(Boolean) ?? []
   ) as Category[];
 
@@ -431,6 +432,36 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
 // ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// SEO — Dynamic metadata from content data
+// ---------------------------------------------------------------------------
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ contentId: string }>;
+}): Promise<Metadata> {
+  const { contentId } = await params;
+  try {
+    const supabase = await createClient();
+    const { data: content } = await supabase
+      .from("contents")
+      .select("title, synopsis, poster_url, type, release_year")
+      .eq("id", contentId)
+      .single();
+    if (!content) return { title: "Content — StreamVault" };
+    return {
+      title: `${content.title} — StreamVault`,
+      description: content.synopsis?.slice(0, 160) ?? `${content.type} from ${content.release_year ?? ""}`,
+      openGraph: content.poster_url
+        ? { title: content.title, description: content.synopsis?.slice(0, 160), images: [content.poster_url] }
+        : undefined,
+    };
+  } catch {
+    return { title: "Content — StreamVault" };
+  }
+}
 
 interface PageProps {
   params: Promise<{ contentId: string }>;

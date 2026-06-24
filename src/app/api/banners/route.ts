@@ -34,7 +34,7 @@ export async function GET() {
       .filter((b) => b.banner_type === "content" && b.content_id)
       .map((b) => b.content_id);
 
-    let contentMap = new Map<string, Record<string, unknown>>();
+    const contentMap = new Map<string, Record<string, unknown>>();
 
     if (contentIds.length > 0) {
       const { data: contents } = await supabase

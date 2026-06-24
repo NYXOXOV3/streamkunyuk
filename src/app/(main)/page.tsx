@@ -31,9 +31,9 @@ interface HomeData {
 // Content card columns for list queries (lightweight — no synopsis)
 // ---------------------------------------------------------------------------
 
-const CARD_SELECT = "id, title, type, poster_url, backdrop_url, release_year, rating, rating_count, is_premium_only";
+const CARD_SELECT = "*";
 
-const HERO_SELECT = "id, title, synopsis, backdrop_url, poster_url, trailer_url, type, release_year, rating, rating_count, is_premium_only";
+const HERO_SELECT = "*";
 
 // ---------------------------------------------------------------------------
 // Data fetcher (server-side, parallel)
@@ -182,33 +182,28 @@ async function fetchHomeData(): Promise<HomeData> {
   // Category-based rows (pick top 3 categories with content)
   if (categoriesRes.data?.length) {
     for (const cat of categoriesRes.data.slice(0, 3)) {
+      // Fetch content IDs from junction table for this category
+      const { data: catLinks } = await supabase
+        .from("content_categories")
+        .select("content_id")
+        .eq("category_id", cat.id);
+
+      const contentIds = (catLinks ?? []).map((r: { content_id: string }) => r.content_id);
+      if (contentIds.length === 0) continue;
+
       const { data: catContent } = await supabase
         .from("contents")
         .select(CARD_SELECT)
         .eq("status", "published")
-        .innerJoin("content_categories", "contents.id", "content_categories.content_id")
-        .eq("content_categories.category_id", cat.id)
+        .in("id", contentIds)
         .order("rating", { ascending: false })
         .limit(15);
 
       if (catContent && catContent.length > 0) {
-        // The join returns combined rows — extract content fields
-        const contents: Content[] = catContent.map((row: Record<string, unknown>) => ({
-          id: row.id as string,
-          title: row.title as string,
-          type: row.type as ContentType,
-          poster_url: row.poster_url as string | null,
-          backdrop_url: row.backdrop_url as string | null,
-          release_year: row.release_year as number | null,
-          rating: (row.rating as number) ?? 0,
-          rating_count: (row.rating_count as number) ?? 0,
-          is_premium_only: (row.is_premium_only as boolean) ?? false,
-        }));
-
         sections.push({
           title: cat.name,
           href: `/browse?category=${cat.slug}`,
-          contents,
+          contents: catContent as Content[],
         });
       }
     }
@@ -415,7 +410,7 @@ async function HeroBannerWrapper() {
         .filter((b) => b.banner_type === "content" && b.content_id)
         .map((b) => b.content_id);
 
-      let contentMap = new Map<string, Record<string, unknown>>();
+      const contentMap = new Map<string, Record<string, unknown>>();
       if (contentIds.length > 0) {
         const { data: contents } = await supabase
           .from("contents")

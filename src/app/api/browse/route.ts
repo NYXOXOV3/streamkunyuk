@@ -8,7 +8,7 @@ import type { Content, ContentType } from "@/lib/supabase/types";
 // ---------------------------------------------------------------------------
 
 const BROWSE_SELECT =
-  "id, title, type, poster_url, backdrop_url, release_year, rating, rating_count, is_premium_only, status";
+  "id, title, original_title, type, poster_url, backdrop_url, release_year, rating, rating_count, is_premium_only, status, language, slug";
 
 // ---------------------------------------------------------------------------
 // GET /api/browse?type=...&category=...&sort=...&search=...&page=...&pageSize=...
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
 
-    const type = searchParams.get("type") as ContentType | null;
+    const type = searchParams.get("type") as string | null;
     const category = searchParams.get("category");
     const sort = searchParams.get("sort") ?? "rating";
     const search = searchParams.get("search")?.trim();
@@ -43,29 +43,24 @@ export async function GET(request: NextRequest) {
 
     // --- Filter by category slug (via content_categories join) ---
     if (category) {
-      query = query
-        .innerJoin(
-          "content_categories",
-          "contents.id",
-          "content_categories.content_id",
-        )
-        .innerJoin(
-          "categories",
-          "content_categories.category_id",
-          "categories.id",
-        )
-        .eq("categories.slug", category);
+      // First get content IDs for this category
+      const { data: catLinks } = await supabase
+        .from("content_categories")
+        .select("content_id")
+        .in("category_id", (
+          await supabase.from("categories").select("id").eq("slug", category)
+        ).data?.map((c: { id: string }) => c.id) ?? []);
+
+      const contentIds = (catLinks ?? []).map((r: { content_id: string }) => r.content_id);
+      if (contentIds.length > 0) {
+        query = query.in("id", contentIds);
+      }
     }
 
     // --- Search filter ---
     if (search) {
       const escaped = escapePostgrest(search);
-      if (category) {
-        // When join is active, qualify column names with table name
-        query = query.or(`contents.title.ilike.%${escaped}%,contents.original_title.ilike.%${escaped}%`);
-      } else {
-        query = query.or(`title.ilike.%${escaped}%,original_title.ilike.%${escaped}%`);
-      }
+      query = query.or(`title.ilike.%${escaped}%,original_title.ilike.%${escaped}%`);
     }
 
     // --- Sorting ---
@@ -98,23 +93,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // When category join is used, the data rows include joined columns.
-    // Extract only the content fields to match the Content type.
-    const contents: Content[] = (data ?? []).map((row: Record<string, unknown>) => ({
-      id: row.id as string,
-      title: row.title as string,
-      type: row.type as ContentType,
-      poster_url: row.poster_url as string | null,
-      backdrop_url: row.backdrop_url as string | null,
-      release_year: row.release_year as number | null,
-      rating: (row.rating as number) ?? 0,
-      rating_count: (row.rating_count as number) ?? 0,
-      is_premium_only: (row.is_premium_only as boolean) ?? false,
-      status: row.status as "published",
-    }));
-
     return NextResponse.json({
-      data: contents,
+      data: data ?? [],
       count: count ?? 0,
       error: null,
     });

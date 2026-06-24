@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,9 +61,34 @@ function formatTime(seconds: number): string {
 // ---------------------------------------------------------------------------
 
 export default function PlayerClient({ data }: PlayerClientProps) {
-  const { episode, content, episodes, categories, isSubscriber, embedUrl, isIframe } = data;
+  const { episode, content, episodes, categories, isSubscriber, isAuthenticated, embedUrl, isIframe } = data;
   const router = useRouter();
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [directUrl, setDirectUrl] = useState<string | null>(null);
+  const [isLoadingDirect, setIsLoadingDirect] = useState(false);
+  const [directError, setDirectError] = useState<string | null>(null);
+
+  // Check if this is Melolo (uses our API proxy, not iframe)
+  const isMelolo = !isIframe && embedUrl?.startsWith("/api/melolo/");
+
+  // Fetch Melolo direct stream URL
+  useEffect(() => {
+    if (!isMelolo || !embedUrl) return;
+    setIsLoadingDirect(true);
+    setDirectError(null);
+
+    fetch(embedUrl)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.url) {
+          setDirectUrl(json.url);
+        } else {
+          setDirectError(json.error || "No stream URL available");
+        }
+      })
+      .catch((err) => setDirectError(err.message))
+      .finally(() => setIsLoadingDirect(false));
+  }, [isMelolo, embedUrl]);
 
   // Derived
   const currentEpIndex = episodes.findIndex((e) => e.id === episode.id);
@@ -116,6 +140,38 @@ export default function PlayerClient({ data }: PlayerClientProps) {
                 </Link>
               )}
             </div>
+          ) : isMelolo ? (
+            <div className="relative w-full h-full bg-black">
+              {isLoadingDirect && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <Loader2 className="w-10 h-10 text-white/60 animate-spin" />
+                </div>
+              )}
+              {directError && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="text-center">
+                    <p className="text-white/60 text-sm">Video unavailable</p>
+                    <p className="text-white/40 text-xs mt-1">{directError}</p>
+                  </div>
+                </div>
+              )}
+              {directUrl && (
+                <video
+                  key={directUrl}
+                  src={directUrl}
+                  className="w-full h-full"
+                  controls
+                  autoPlay
+                  playsInline
+                  onLoadStart={() => setIsLoadingDirect(false)}
+                />
+              )}
+              {!isLoadingDirect && !directUrl && !directError && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-white/60">Loading stream...</p>
+                </div>
+              )}
+            </div>
           ) : isIframe && embedUrl ? (
             <div className="relative w-full h-full">
               {!iframeLoaded && (
@@ -129,7 +185,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
                 allowFullScreen
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 referrerPolicy="no-referrer"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation allow-top-navigation"
                 onLoad={() => setIframeLoaded(true)}
               />
             </div>
@@ -245,15 +301,15 @@ export default function PlayerClient({ data }: PlayerClientProps) {
 
         {/* Episode List */}
         {episodes.length > 1 && (
-          <div className="space-y-3">
+          <div className="space-y-3 pb-8">
             <h2 className="text-lg font-semibold text-foreground">
               All Episodes
               <span className="text-sm font-normal text-muted-foreground ml-2">
                 {episodes.length}
               </span>
             </h2>
-            <ScrollArea className="max-h-[400px]">
-              <div className="space-y-1.5">
+            <div className="max-h-[400px] overflow-y-auto rounded-xl">
+              <div className="space-y-1.5 pr-1">
                 {episodes.map((ep) => {
                   const isActive = ep.id === episode.id;
                   const epLocked = ep.is_locked && !isSubscriber && !ep.is_free_trial;
@@ -334,7 +390,7 @@ export default function PlayerClient({ data }: PlayerClientProps) {
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         )}
 

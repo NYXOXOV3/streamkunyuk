@@ -302,7 +302,7 @@ export function parseTmdbToContentType(
  * Supported video player providers.
  * Each provider has a unique `id` used in the database and admin panel.
  */
-export type VideoPlayerProvider = "vidapi" | "2embed";
+export type VideoPlayerProvider = "vidapi" | "2embed" | "melolo";
 
 /**
  * Build a 2Embed.cc embed URL for a movie.

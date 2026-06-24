@@ -6,10 +6,29 @@
  * 2. Seeds an admin user + sample content with episodes
  */
 
+/**
+ * StreamVault - Full Supabase Schema Setup + Seed Data
+ *
+ * IMPORTANT: Before running this script, set these environment variables:
+ *   SUPABASE_URL     — your Supabase project URL
+ *   SUPABASE_SERVICE_KEY — your Supabase service role key
+ *
+ * Usage:
+ *   SUPABASE_URL="https://xxx.supabase.co" SUPABASE_SERVICE_KEY="eyJ..." bun run scripts/setup-supabase.ts
+ */
+
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://gjrckrnmspbolvrujmnf.supabase.co";
-const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqcmNrcm5tc3Bib2x2cnVqbW5mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjAzNDk1MywiZXhwIjoyMDk3NjEwOTUzfQ._osuy9lG__GMLd89Q8uhzuhT6b4kL-vqJaO-IhmvCHI";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error("❌ Missing required environment variables:");
+  if (!SUPABASE_URL) console.error("   SUPABASE_URL not set");
+  if (!SUPABASE_SERVICE_KEY) console.error("   SUPABASE_SERVICE_KEY not set");
+  console.error("\nUsage: SUPABASE_URL='https://xxx.supabase.co' SUPABASE_SERVICE_KEY='eyJ...' bun run scripts/setup-supabase.ts");
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
