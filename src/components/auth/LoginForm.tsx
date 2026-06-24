@@ -72,8 +72,8 @@ export function LoginForm() {
     // Fetch profile and subscription
     try {
       const [profileRes, subRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", userId).single(),
-        supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).single(),
+        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+        supabase.from("subscriptions").select("*, subscription_tier(*)").eq("user_id", userId).maybeSingle(),
       ]);
 
       useAuthStore.getState().setAuth({
