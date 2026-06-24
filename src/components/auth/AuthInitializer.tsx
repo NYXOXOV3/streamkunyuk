@@ -105,7 +105,7 @@ export function AuthInitializer() {
 
     // Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: string, session: any) => {
         if (!mounted) return;
 
         if (event === "SIGNED_OUT" || !session?.user) {

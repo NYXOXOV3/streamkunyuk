@@ -24,13 +24,13 @@ export default function ResetPasswordPage() {
     // The user should arrive here via the reset link from email
     // Supabase auto-exchanges the code in the URL on page load
     const supabase = createClient();
-    supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.onAuthStateChange((event: string) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsReady(true);
       }
     });
     // Also try to get session directly
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: unknown } }) => {
       if (session) setIsReady(true);
     });
   }, []);

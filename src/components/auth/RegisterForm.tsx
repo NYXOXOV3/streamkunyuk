@@ -46,6 +46,10 @@ export function RegisterForm() {
     }
 
     const supabase = createClient();
+    const timeout = setTimeout(() => {
+      setIsSubmitting(false);
+      setServerError("Request timed out. Check your Supabase connection.");
+    }, 15000);
 
     // 1. Sign up
     const { error: signUpError } = await supabase.auth.signUp({
@@ -57,6 +61,7 @@ export function RegisterForm() {
     });
 
     if (signUpError) {
+      clearTimeout(timeout);
       setServerError(signUpError.message);
       toast({ title: "Sign up failed", description: signUpError.message, variant: "destructive" });
       setIsSubmitting(false);
@@ -65,6 +70,7 @@ export function RegisterForm() {
 
     // 2. Auto sign in after register (works if email confirmation is disabled)
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    clearTimeout(timeout);
 
     if (signInError) {
       // Email confirmation might be required

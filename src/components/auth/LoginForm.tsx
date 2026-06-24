@@ -42,7 +42,15 @@ export function LoginForm() {
 
     const supabase = createClient();
 
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setIsSubmitting(false);
+      setServerError("Request timed out. Check your Supabase connection.");
+      toast({ title: "Timeout", description: "Login request timed out", variant: "destructive" });
+    }, 15000);
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    clearTimeout(timeout);
 
     if (error) {
       setServerError(error.message);

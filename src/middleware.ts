@@ -1,30 +1,47 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createMiddlewareClient } from "@/lib/supabase/middleware";
+import { createServerClient } from "@supabase/ssr";
 
 /**
  * StreamVault Middleware
  *
- * 1. Refreshes Supabase session cookies on every request
- * 2. Passes through all auth checks (handled client-side)
- *
- * Session refresh is critical on Vercel Edge to keep the
- * auth cookie in sync with the actual session state.
+ * CRITICAL for Vercel: Refreshes Supabase session cookies on every request.
+ * This ensures that:
+ *   - Server Components can read the user session
+ *   - Auth state persists across page loads
+ *   - Token refresh happens automatically
  */
 export async function middleware(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
   // If Supabase is not configured, pass through
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")) {
+  if (!supabaseUrl || supabaseUrl.includes("placeholder")) {
     return NextResponse.next();
   }
 
-  try {
-    // Refresh session cookie — this is required for SSR to work
-    // on Vercel where the edge network handles requests
-    const { supabase, response } = await createMiddlewareClient(request);
-    await supabase.auth.getSession();
-    return response;
-  } catch {
-    return NextResponse.next();
-  }
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet: any[]) {
+        for (const { name, value } of cookiesToSet) {
+          request.cookies.set(name, value);
+        }
+        supabaseResponse = NextResponse.next({ request });
+        for (const { name, value, options } of cookiesToSet) {
+          supabaseResponse.cookies.set(name, value, options);
+        }
+      },
+    },
+  });
+
+  // Refresh session — this sets the cookies if they're expired
+  await supabase.auth.getSession();
+
+  return supabaseResponse;
 }
 
 export const config = {
