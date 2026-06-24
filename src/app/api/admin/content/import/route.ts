@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { importFromTmdb, bulkImportFromTmdb } from "@/lib/admin/content-actions";
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 // Single import
 export async function POST(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const body = await request.json();
   const { items } = body;
 

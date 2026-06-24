@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateEpisodeLock, bulkUpdateEpisodeLocks } from "@/lib/admin/content-actions";
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 export async function PATCH(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const body = await request.json();
 
   // Single episode lock toggle

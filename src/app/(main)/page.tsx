@@ -404,8 +404,8 @@ async function HeroBannerWrapper() {
         "id, title, subtitle, banner_type, content_id, custom_image_url, custom_link_url, cta_text, cta_link, sort_order, start_date, end_date"
       )
       .eq("is_active", true)
-      .or(`start_date.is.null,start_date.lte.${now}`)
-      .or(`end_date.is.null,end_date.gte.${now}`)
+      .not("start_date", "gt", now)
+      .not("end_date", "lt", now)
       .order("sort_order", { ascending: true })
       .limit(10);
 

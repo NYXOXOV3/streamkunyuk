@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateContent, getContentById, deleteContent } from "@/lib/admin/content-actions";
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   const result = await getContentById(id);
   if (result.error) {
@@ -17,6 +21,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   const body = await request.json();
   const result = await updateContent(id, body);
@@ -24,9 +31,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   const result = await deleteContent(id);
   return NextResponse.json(result, { status: result.success ? 200 : 400 });

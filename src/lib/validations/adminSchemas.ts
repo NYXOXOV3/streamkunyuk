@@ -43,7 +43,7 @@ export const manualContentSchema = z.object({
     .number({ invalid_type_error: "Must be a number" })
     .int("Must be a whole number")
     .min(1900)
-    .max(2030)
+    .max(2040)
     .optional(),
   runtime_minutes: z
     .number()

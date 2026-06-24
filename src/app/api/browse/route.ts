@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { escapePostgrest } from "@/lib/supabase/helpers";
 import type { Content, ContentType } from "@/lib/supabase/types";
 
 // ---------------------------------------------------------------------------
@@ -58,7 +59,13 @@ export async function GET(request: NextRequest) {
 
     // --- Search filter ---
     if (search) {
-      query = query.or(`title.ilike.%${search}%,original_title.ilike.%${search}%`);
+      const escaped = escapePostgrest(search);
+      if (category) {
+        // When join is active, qualify column names with table name
+        query = query.or(`contents.title.ilike.%${escaped}%,contents.original_title.ilike.%${escaped}%`);
+      } else {
+        query = query.or(`title.ilike.%${escaped}%,original_title.ilike.%${escaped}%`);
+      }
     }
 
     // --- Sorting ---

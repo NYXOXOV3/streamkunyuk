@@ -104,7 +104,7 @@ async function ContentDetailContent({
       .filter(Boolean) ?? []
   ) as Category[];
 
-  // Fetch episodes (only for multi-episode content types)
+  // Fetch episodes (all for multi-episode types, first one for movies)
   let episodes: Episode[] = [];
   if (HAS_EPISODES.includes(content.type)) {
     const { data: epData } = await supabase
@@ -113,6 +113,15 @@ async function ContentDetailContent({
       .eq("content_id", contentId)
       .order("episode_number", { ascending: true });
 
+    episodes = epData ?? [];
+  } else {
+    // For movies, fetch the first episode so the Play button can link to the player
+    const { data: epData } = await supabase
+      .from("episodes")
+      .select("*")
+      .eq("content_id", contentId)
+      .order("episode_number", { ascending: true })
+      .limit(1);
     episodes = epData ?? [];
   }
 
@@ -137,6 +146,12 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
   const { content, episodes, categories, isSubscriber } = data;
   const TypeIcon = TYPE_ICONS[content.type];
   const hasEpisodes = HAS_EPISODES.includes(content.type);
+
+  // Determine the play URL for movies (uses first episode if available)
+  const moviePlayUrl =
+    episodes.length > 0
+      ? `/watch/${content.id}/${episodes[0].id}`
+      : `/watch/${content.id}`;
 
   // Determine if the "Play" button should be locked
   const isLocked =
@@ -199,7 +214,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                     size="lg"
                     className="rounded-xl bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
                   >
-                    <Link href={`/watch/${content.id}`}>
+                    <Link href={moviePlayUrl}>
                       <Play className="w-5 h-5 mr-2" />
                       Play
                     </Link>
@@ -226,7 +241,7 @@ function ContentDetailLayout({ data }: { data: ContentDetailData }) {
                   size="lg"
                   className="rounded-xl bg-cinema-red hover:bg-cinema-red-hover text-white glow-red font-semibold"
                 >
-                  <Link href={`/watch/${content.id}`}>
+                  <Link href={moviePlayUrl}>
                     <Play className="w-5 h-5 mr-2" />
                     Play
                   </Link>

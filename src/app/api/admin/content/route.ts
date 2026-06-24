@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContentList, createContent } from "@/lib/admin/content-actions";
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 export async function GET(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const sp = request.nextUrl.searchParams;
   const result = await getContentList({
     page: Number(sp.get("page")) || 1,
@@ -14,6 +18,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const body = await request.json();
   const result = await createContent(body);
   return NextResponse.json(result, { status: result.success ? 200 : 400 });

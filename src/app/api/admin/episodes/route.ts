@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEpisodes, createEpisode } from "@/lib/admin/content-actions";
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 export async function GET(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const sp = request.nextUrl.searchParams;
   const contentId = sp.get("contentId");
   if (!contentId) {
@@ -12,6 +16,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   const { contentId, ...formData } = await request.json();
   if (!contentId) {
     return NextResponse.json({ success: false, error: "contentId is required" }, { status: 400 });

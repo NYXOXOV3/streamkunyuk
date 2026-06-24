@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { escapePostgrest } from "@/lib/supabase/helpers";
 import type { Content } from "@/lib/supabase/types";
 
 /**
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
         { count: "exact" },
       )
       .eq("status", "published")
-      .or(`title.ilike.%${q}%,original_title.ilike.%${q}%`)
+      .or(`title.ilike.%${escapePostgrest(q)}%,original_title.ilike.%${escapePostgrest(q)}%`)
       .order("rating", { ascending: false });
 
     // Apply type filter if provided

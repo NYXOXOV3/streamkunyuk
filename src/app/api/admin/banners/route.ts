@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 // ----------------------------------------------------------------
 // GET /api/admin/banners — list all banners (admin only, uses service role)
 // ----------------------------------------------------------------
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   try {
     const supabase = await createAdminClient();
 
@@ -36,6 +40,9 @@ export async function GET() {
 // POST /api/admin/banners — create a new banner
 // ----------------------------------------------------------------
 export async function POST(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   try {
     const supabase = await createAdminClient();
     const body = await request.json();
@@ -74,6 +81,9 @@ export async function POST(request: NextRequest) {
 // PATCH /api/admin/banners — update a banner (id in body)
 // ----------------------------------------------------------------
 export async function PATCH(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   try {
     const supabase = await createAdminClient();
     const body = await request.json();
@@ -106,6 +116,9 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/admin/banners?id=xxx — delete a banner
 // ----------------------------------------------------------------
 export async function DELETE(request: NextRequest) {
+  const forbidden = await assertAdmin(request);
+  if (forbidden) return forbidden;
+
   try {
     const supabase = await createAdminClient();
     const id = request.nextUrl.searchParams.get("id");
