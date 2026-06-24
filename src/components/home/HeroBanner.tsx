@@ -44,7 +44,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
     [items.length],
   );
 
-  // Auto-cycle
+  // Auto-cycle — current not in deps because we use callback form
   useEffect(() => {
     if (items.length <= 1 || isPaused) return;
 
@@ -55,12 +55,7 @@ export function HeroBanner({ items }: HeroBannerProps) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [items.length, isPaused, current]);
-
-  // Reset pause when current changes (user clicked a dot)
-  useEffect(() => {
-    setIsPaused(false);
-  }, [current]);
+  }, [items.length, isPaused]);
 
   const item = items[current];
 

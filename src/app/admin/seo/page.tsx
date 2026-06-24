@@ -59,7 +59,8 @@ export default function SeoPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Sync form when data loads
+  // Sync form when data loads — intentional, runs once per fetch
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (data) {
       setForm(data);

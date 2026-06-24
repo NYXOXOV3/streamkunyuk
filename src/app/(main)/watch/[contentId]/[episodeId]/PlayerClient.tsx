@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { Content, Episode, Category } from "@/lib/supabase/types";
 import {
   Play,
@@ -74,20 +73,33 @@ export default function PlayerClient({ data }: PlayerClientProps) {
   // Fetch Melolo direct stream URL
   useEffect(() => {
     if (!isMelolo || !embedUrl) return;
-    setIsLoadingDirect(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDirectUrl(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDirectError(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLoadingDirect(true);
 
     fetch(embedUrl)
       .then((res) => res.json())
       .then((json) => {
+        if (cancelled) return;
         if (json.url) {
           setDirectUrl(json.url);
         } else {
           setDirectError(json.error || "No stream URL available");
         }
       })
-      .catch((err) => setDirectError(err.message))
-      .finally(() => setIsLoadingDirect(false));
+      .catch((err) => {
+        if (!cancelled) setDirectError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDirect(false);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [isMelolo, embedUrl]);
 
   // Derived

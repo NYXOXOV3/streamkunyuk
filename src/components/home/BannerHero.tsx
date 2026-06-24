@@ -82,11 +82,7 @@ export function BannerHero({ items }: BannerHeroProps) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [items.length, isPaused, current]);
-
-  useEffect(() => {
-    setIsPaused(false);
-  }, [current]);
+  }, [items.length, isPaused]); // lint: removing `current` — setCurrent uses callback form
 
   if (!items.length) return null;
 

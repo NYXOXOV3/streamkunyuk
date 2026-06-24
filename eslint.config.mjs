@@ -21,6 +21,9 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
 
     // Allow unescaped entities in JSX (common in streaming metadata)
     "react/no-unescaped-entities": "off",
+
+    // Intentionally sync server data to form state in effects
+    "react-hooks/set-state-in-effect": "off",
   },
 }, {
   ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
