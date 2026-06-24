@@ -4,7 +4,6 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["sin1", "hkg1"],
   "headers": [
     {
       "source": "/(.*)",
@@ -31,12 +30,6 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/ingress/:path*",
-      "destination": "/api/:path*"
     }
   ]
 }
