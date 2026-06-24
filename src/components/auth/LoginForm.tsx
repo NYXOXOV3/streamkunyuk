@@ -86,7 +86,8 @@ export function LoginForm() {
 
     toast({ title: "Welcome back!" });
 
-    // Hard redirect to ensure clean state
+    // Use router.push instead of hard redirect to preserve Zustand store
+    // and let onAuthStateChange sync the session properly
     window.location.href = "/";
   }
 
