@@ -87,8 +87,8 @@ export function RegisterForm() {
         useAuthStore.getState().setAuth({
           userId,
           email: userEmail,
-          profile: (profileRes.data as Profile) ?? null,
-          subscription: (subRes.data as Subscription) ?? null,
+          profile: (profileRes.data as unknown as Profile) ?? null,
+          subscription: (subRes.data as unknown as Subscription) ?? null,
         });
       } catch {
         useAuthStore.getState().setAuth({

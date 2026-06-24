@@ -55,8 +55,8 @@ export function AuthInitializer() {
           setAuth({
             userId,
             email,
-            profile: (profileRes.data as Profile) ?? null,
-            subscription: (subRes.data as Subscription) ?? null,
+            profile: (profileRes.data as unknown as Profile) ?? null,
+            subscription: (subRes.data as unknown as Subscription) ?? null,
           });
         }
       } catch (err) {

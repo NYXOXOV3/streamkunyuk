@@ -19,12 +19,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+function getEnvVar(name: string, fallback: string): string {
+  const val = process.env[name];
+  if (!val || val.includes("placeholder")) return fallback;
+  return val;
+}
+
 export async function createAdminClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    getEnvVar("NEXT_PUBLIC_SUPABASE_URL", "https://placeholder.supabase.co"),
+    getEnvVar("SUPABASE_SERVICE_ROLE_KEY", "placeholder-key"),
     {
       cookies: {
         getAll() {
