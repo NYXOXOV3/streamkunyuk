@@ -4,8 +4,6 @@ import { assertAdmin } from "@/lib/admin/auth-helpers";
 
 /**
  * GET /api/admin/payments?page=1&pageSize=20&status=PAID&search=ref
- *
- * Returns payment transactions with user & plan info.
  */
 export async function GET(request: NextRequest) {
   const forbidden = await assertAdmin(request);
@@ -22,10 +20,10 @@ export async function GET(request: NextRequest) {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // Build query
+    // Fetch transactions with plan info (no profiles join — FK is to auth.users, not profiles)
     let query = supabase
       .from("payment_transactions")
-      .select("*, profiles!inner(display_name), subscription_plans(display_name)", { count: "exact" });
+      .select("*, subscription_plans(display_name)", { count: "exact" });
 
     if (statusFilter) {
       query = query.eq("status", statusFilter);
@@ -41,8 +39,27 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
+    // Fetch user display names separately
+    const userIds = [...new Set((data ?? []).map((tx: { user_id: string }) => tx.user_id))];
+    let profileMap: Record<string, { display_name: string | null }> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      for (const p of profiles ?? []) {
+        profileMap[p.id] = p;
+      }
+    }
+
+    // Attach profiles to transactions
+    const enriched = (data ?? []).map((tx: Record<string, unknown>) => ({
+      ...tx,
+      profiles: profileMap[tx.user_id as string] || { display_name: null },
+    }));
+
     return NextResponse.json({
-      data: data ?? [],
+      data: enriched,
       total: count ?? 0,
       totalPages: Math.ceil((count ?? 0) / pageSize),
       page,
