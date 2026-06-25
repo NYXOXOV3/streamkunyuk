@@ -79,9 +79,17 @@ function SubscriptionContent() {
     setIsProcessing(true);
 
     try {
+      // Get session token from Supabase client
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const res = await fetch("/api/payment/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           plan_id: selectedPlan,
           payment_channel: selectedChannel,

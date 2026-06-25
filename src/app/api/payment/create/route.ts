@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createTransaction, getPaymentChannels, type TripayConfig } from "@/lib/api/tripay";
+import { createTransaction, type TripayConfig } from "@/lib/api/tripay";
 
 /**
  * POST /api/payment/create
  *
  * Create a subscription payment via Tripay.
- * Authenticated user selects a plan → we create a Tripay transaction.
+ * Reads user token from Authorization header (set by client-side Supabase).
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Get auth token from header (client-side Supabase uses localStorage)
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const token = authHeader.slice(7);
 
-    if (authError || !user) {
+    // Verify token
+    const admin = await createAdminClient();
+    const { data: { user }, error: userError } = await admin.auth.getUser(token);
+
+    if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,8 +31,6 @@ export async function POST(request: NextRequest) {
     if (!plan_id || !payment_channel) {
       return NextResponse.json({ error: "plan_id and payment_channel required" }, { status: 400 });
     }
-
-    const admin = await createAdminClient();
 
     // Get plan details
     const { data: plan, error: planError } = await admin
@@ -63,7 +67,7 @@ export async function POST(request: NextRequest) {
     // Get user profile for customer info
     const { data: profile } = await admin
       .from("profiles")
-      .select("display_name, avatar_url")
+      .select("display_name")
       .eq("id", user.id)
       .maybeSingle();
 
