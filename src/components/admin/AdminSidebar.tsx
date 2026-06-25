@@ -18,6 +18,8 @@ import {
   Play,
   Image,
   Menu,
+  CreditCard,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +38,8 @@ const navItems = [
   { href: "/admin/player-settings", label: "Player", icon: Play },
   { href: "/admin/banners", label: "Banners", icon: Image },
   { href: "/admin/seo", label: "SEO", icon: Search },
+  { href: "/admin/payment/tripay", label: "Tripay Payment", icon: CreditCard },
+  { href: "/admin/subscription-settings", label: "Subscriptions", icon: Crown },
   { href: "/admin/api-config", label: "API Config", icon: Key },
   { href: "/admin/users", label: "Users", icon: Users },
 ];
