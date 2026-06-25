@@ -94,5 +94,5 @@ SET price_monthly = 59900, price_yearly = 599000, max_quality = '1080p'
 WHERE name = 'premium';
 
 INSERT INTO public.subscription_tiers (name, display_name, price_monthly, price_yearly, max_quality, features, is_active, sort_order)
-SELECT 'basic', 'Basic', 29900, 299000, '720p', ARRAY['720p streaming', '1 device', 'Ad-free'], true, 1
+SELECT 'basic', 'Basic', 29900, 299000, '720p', '["720p streaming", "1 device", "Ad-free"]'::jsonb, true, 1
 WHERE NOT EXISTS (SELECT 1 FROM public.subscription_tiers WHERE name = 'basic');
